@@ -1,0 +1,289 @@
+{
+  "Name": "Mouse NGS Cell Death Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210802", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "Cytotoxicity", 
+      "Targets": [
+        "Perforin"
+      ]
+    }, 
+    {
+      "Name": "Caspase", 
+      "Targets": [
+        "Cleaved Caspase 3"
+      ]
+    }, 
+    {
+      "Name": "Apoptosis", 
+      "Targets": [
+        "BAD", 
+        "BCLXL", 
+        "Cleaved Caspase 3", 
+        "BIM", 
+        "p21"
+      ]
+    }, 
+    {
+      "Name": "Anti-apoptosis", 
+      "Targets": [
+        "BCLXL", 
+        "p21"
+      ]
+    }, 
+    {
+      "Name": "DNA Damage", 
+      "Targets": [
+        "p53", 
+        "gamma-H2AX", 
+        "PARP", 
+        "p21"
+      ]
+    }, 
+    {
+      "Name": "Pro-apoptosis", 
+      "Targets": [
+        "BAD", 
+        "BIM"
+      ]
+    }, 
+    {
+      "Name": "Tumor Suppressor", 
+      "Targets": [
+        "p53", 
+        "Neurofibromin"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        12367
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Cleaved Caspase 3", 
+      "SystematicName": [
+        "Casp3"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048391", 
+      "RTS_Seq": "CATGCGAAGCGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00473.1", 
+          "Accession": [
+            "P70677"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18015
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Neurofibromin", 
+      "SystematicName": [
+        "Nf1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048374", 
+      "RTS_Seq": "GGTGGCTGCGCT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00523.1", 
+          "Accession": [
+            "Q04690"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        12125
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "BIM", 
+      "SystematicName": [
+        "Bcl2l11"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048371", 
+      "RTS_Seq": "ATCGTAATTGAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00254.1", 
+          "Accession": [
+            "Q542N5", 
+            "Q6PEB3", 
+            "O54918", 
+            "Q3U7X3", 
+            "Q3TR86"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18646
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Perforin", 
+      "SystematicName": [
+        "Prf1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048393", 
+      "RTS_Seq": "TCTTCGTCAACC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00475.1", 
+          "Accession": [
+            "A2RSY7", 
+            "P10820"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        15270
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "gamma-H2AX", 
+      "SystematicName": [
+        "H2ax"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048397", 
+      "RTS_Seq": "TTGACGGCAACT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00338.1", 
+          "Accession": [
+            "P27661"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        12015
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "BAD", 
+      "SystematicName": [
+        "Bad"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048369", 
+      "RTS_Seq": "ACGCGAGGCAAC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00246.1", 
+          "Accession": [
+            "Q61337", 
+            "Q3U9H3"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        12575
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "p21", 
+      "SystematicName": [
+        "Cdkn1a"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048399", 
+      "RTS_Seq": "TATATGTGCATG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00474.1", 
+          "Accession": [
+            "Q564P6", 
+            "P39689"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        11545
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "PARP", 
+      "SystematicName": [
+        "Parp1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048376", 
+      "RTS_Seq": "TACGGCGACGTT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00253.1", 
+          "Accession": [
+            "Q921K2"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        12048
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "BCLXL", 
+      "SystematicName": [
+        "Bcl2l1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020864", 
+      "RTS_Seq": "ACGAGCCGCTAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00248.1", 
+          "Accession": [
+            "Q5HZH3", 
+            "O35843", 
+            "Q64373"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        22059
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "p53", 
+      "SystematicName": [
+        "Trp53"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048400", 
+      "RTS_Seq": "TGTCACAGTGAG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00477.1", 
+          "Accession": [
+            "Q549C9", 
+            "Q80ZA1", 
+            "Q3UGQ1", 
+            "P02340"
+          ]
+        }
+      ]
+    }
+  ]
+}

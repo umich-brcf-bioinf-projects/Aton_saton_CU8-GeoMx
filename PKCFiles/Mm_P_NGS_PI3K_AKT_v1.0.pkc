@@ -1,0 +1,228 @@
+{
+  "Name": "Mouse NGS PI3K/AKT Signaling Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210802", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "Oncogene", 
+      "Targets": [
+        "Pan-AKT", 
+        "MET", 
+        "Phospho-AKT1 (S473)"
+      ]
+    }, 
+    {
+      "Name": "mTOR", 
+      "Targets": [
+        "Phospho-S6 (S235/S236)", 
+        "Phospho-AMPK-alpha (T172)"
+      ]
+    }, 
+    {
+      "Name": "PI3K-AKT", 
+      "Targets": [
+        "Pan-AKT", 
+        "MET", 
+        "Phospho-AKT1 (S473)", 
+        "Phospho-GSK3A (S21)/Phospho-GSK3B (S9)", 
+        "PLCG1", 
+        "Phospho-PRAS40 (T246)"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        11651, 
+        11652, 
+        23797
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Pan-AKT", 
+      "SystematicName": [
+        "Akt1", 
+        "Akt2", 
+        "Akt3"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048357", 
+      "RTS_Seq": "TCTCTGCGCTTA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00318.1", 
+          "Accession": [
+            "Q60823", 
+            "Q9WUA6", 
+            "Q8CE74", 
+            "Q8C6X4", 
+            "P31750", 
+            "Q3TY95"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        606496, 
+        56637
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-GSK3A (S21)/Phospho-GSK3B (S9)", 
+      "SystematicName": [
+        "Gsk3a", 
+        "Gsk3b"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048352", 
+      "RTS_Seq": "TTACAATTGTTC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00334.1", 
+          "Accession": [
+            "E9QAQ5", 
+            "Q5KU03", 
+            "Q9WV60", 
+            "Q2NL51"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        11651
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-AKT1 (S473)", 
+      "SystematicName": [
+        "Akt1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048384", 
+      "RTS_Seq": "CCTTAGCACTTG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00236.1", 
+          "Accession": [
+            "P31750"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20104
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-S6 (S235/S236)", 
+      "SystematicName": [
+        "Rps6"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048495", 
+      "RTS_Seq": "GGTCTTCCGTAT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00315.1", 
+          "Accession": [
+            "P62754", 
+            "Q5BLK1"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17295
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "MET", 
+      "SystematicName": [
+        "Met"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048496", 
+      "RTS_Seq": "CAGGCCTATGAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00481.1", 
+          "Accession": [
+            "F8VQL0", 
+            "A4FUV6"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18803
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "PLCG1", 
+      "SystematicName": [
+        "Plcg1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048355", 
+      "RTS_Seq": "GTATCTATCGAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00241.1", 
+          "Accession": [
+            "Q62077"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        67605
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-PRAS40 (T246)", 
+      "SystematicName": [
+        "Akt1s1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048356", 
+      "RTS_Seq": "CTTCGGCTGCTG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00242.1", 
+          "Accession": [
+            "Q9D1F4", 
+            "E9QKI5"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        105787
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-AMPK-alpha (T172)", 
+      "SystematicName": [
+        "Prkaa1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048494", 
+      "RTS_Seq": "GTCTACGACTAT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00482.1", 
+          "Accession": [
+            "Q5EG47", 
+            "Q8BUX6", 
+            "Q3TUQ7"
+          ]
+        }
+      ]
+    }
+  ]
+}

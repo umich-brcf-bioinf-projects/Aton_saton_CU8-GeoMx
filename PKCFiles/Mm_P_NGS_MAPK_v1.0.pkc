@@ -1,0 +1,302 @@
+{
+  "Name": "Mouse NGS MAPK Signaling Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210802", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "Oncogene", 
+      "Targets": [
+        "EGFR", 
+        "pan-RAS", 
+        "BRAF", 
+        "Phospho-MEK1 (S217/S221)", 
+        "Phospho-p44/42 MAPK ERK1/2 (T202/Y204)", 
+        "MEK1"
+      ]
+    }, 
+    {
+      "Name": "Receptor Tyrosine Kinase", 
+      "Targets": [
+        "EGFR"
+      ]
+    }, 
+    {
+      "Name": "Growth Factor Signaling", 
+      "Targets": [
+        "EGFR"
+      ]
+    }, 
+    {
+      "Name": "MAPK", 
+      "Targets": [
+        "EGFR", 
+        "pan-RAS", 
+        "BRAF", 
+        "Phospho-JNK (T183/Y185)", 
+        "Phospho-MEK1 (S217/S221)", 
+        "Phospho-p44/42 MAPK ERK1/2 (T202/Y204)", 
+        "p44/42 MAPK ERK1/2", 
+        "Phospho-p90 RSK  (T359/S363)", 
+        "MEK1", 
+        "p38 MAPK"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        26419
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-JNK (T183/Y185)", 
+      "SystematicName": [
+        "Mapk8"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048350", 
+      "RTS_Seq": "GATTAAGGTGGT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00229.1", 
+          "Accession": [
+            "Q7TSJ7", 
+            "G3X8U9", 
+            "Q544A0", 
+            "Q91Y86", 
+            "A6P3E4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20111
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-p90 RSK  (T359/S363)", 
+      "SystematicName": [
+        "Rps6ka1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048347", 
+      "RTS_Seq": "AGGTCGGCGCTC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00235.1", 
+          "Accession": [
+            "E9PWV3", 
+            "Q810V8", 
+            "P18653", 
+            "Q505N6"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18176, 
+        15461, 
+        16653
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "pan-RAS", 
+      "SystematicName": [
+        "Hras", 
+        "Nras", 
+        "Kras"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048346", 
+      "RTS_Seq": "ACTTATGGCGAT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00222.1", 
+          "Accession": [
+            "Q0VDV7", 
+            "Q61411", 
+            "Q3TMF4", 
+            "Q4FJP3", 
+            "Q5J7N1", 
+            "P32883", 
+            "Q9D091"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        13649
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "EGFR", 
+      "SystematicName": [
+        "Egfr"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048383", 
+      "RTS_Seq": "CATAGACCACAT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00132.1", 
+          "Accession": [
+            "Q9WVF5", 
+            "Q3TQS6", 
+            "Q01279", 
+            "Q9EP98"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        26417, 
+        26413
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "p44/42 MAPK ERK1/2", 
+      "SystematicName": [
+        "Mapk3", 
+        "Mapk1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048348", 
+      "RTS_Seq": "TATATTCGCATG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00234.1", 
+          "Accession": [
+            "P63085", 
+            "Q63844"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        26395
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "MEK1", 
+      "SystematicName": [
+        "Map2k1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048487", 
+      "RTS_Seq": "TCGTAGGCCGTA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00484.1", 
+          "Accession": [
+            "Q3TMJ8", 
+            "P31938"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        109880
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "BRAF", 
+      "SystematicName": [
+        "Braf"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048382", 
+      "RTS_Seq": "CGAATATACGAC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00226.1", 
+          "Accession": [
+            "P28028"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        26416, 
+        29857, 
+        19094, 
+        26415
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "p38 MAPK", 
+      "SystematicName": [
+        "Mapk14", 
+        "Mapk11", 
+        "Mapk12", 
+        "Mapk13"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048417", 
+      "RTS_Seq": "TGTTCGCGCACA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00485.1", 
+          "Accession": [
+            "Q5U421", 
+            "P47811", 
+            "Q9Z1B7", 
+            "O08911", 
+            "Q3UIB2", 
+            "Q9WUI1"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        26417, 
+        26413
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-p44/42 MAPK ERK1/2 (T202/Y204)", 
+      "SystematicName": [
+        "Mapk3", 
+        "Mapk1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048349", 
+      "RTS_Seq": "CTTGCTGGCATC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00232.1", 
+          "Accession": [
+            "P63085", 
+            "Q63844"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        26395
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-MEK1 (S217/S221)", 
+      "SystematicName": [
+        "Map2k1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048359", 
+      "RTS_Seq": "GTATGTGACGAG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00230.1", 
+          "Accession": [
+            "Q3TMJ8", 
+            "P31938"
+          ]
+        }
+      ]
+    }
+  ]
+}

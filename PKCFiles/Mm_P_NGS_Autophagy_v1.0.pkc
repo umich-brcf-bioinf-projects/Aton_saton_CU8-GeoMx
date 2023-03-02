@@ -1,0 +1,270 @@
+{
+  "Name": "Mouse NGS Autophagy Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210916", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "Autophagosome Formation", 
+      "Targets": [
+        "ATG12", 
+        "ATG5", 
+        "LC3B"
+      ]
+    }, 
+    {
+      "Name": "PD", 
+      "Targets": [
+        "PLA2G6"
+      ]
+    }, 
+    {
+      "Name": "Autophagy Promotion", 
+      "Targets": [
+        "BAG3", 
+        "Beclin-1", 
+        "TFEB", 
+        "ULK1"
+      ]
+    }, 
+    {
+      "Name": "Protein Sorting", 
+      "Targets": [
+        "VPS35", 
+        "LC3B", 
+        "P62"
+      ]
+    }, 
+    {
+      "Name": "Lysosomal Biogenesis", 
+      "Targets": [
+        "TFEB"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        29810
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "BAG3", 
+      "SystematicName": [
+        "Bag3"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048517", 
+      "RTS_Seq": "ATAGCTGAGACT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00453.1", 
+          "Accession": [
+            "Q9JLV1"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18412
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "P62", 
+      "SystematicName": [
+        "Sqstm1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048516", 
+      "RTS_Seq": "AACGGTCACAGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00442.1", 
+          "Accession": [
+            "Q64337"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        65114
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "VPS35", 
+      "SystematicName": [
+        "Vps35"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048498", 
+      "RTS_Seq": "GAGCCATCGCAT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00285.1", 
+          "Accession": [
+            "Q9EQH3", 
+            "Q3TRJ1"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        56208
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Beclin-1", 
+      "SystematicName": [
+        "Becn1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048515", 
+      "RTS_Seq": "CACTAATGTACA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00279.1", 
+          "Accession": [
+            "O88597"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        21425
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "TFEB", 
+      "SystematicName": [
+        "Tfeb"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048519", 
+      "RTS_Seq": "CTTATTCGAGAT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00443.1", 
+          "Accession": [
+            "Q3UKG7", 
+            "Q6P203", 
+            "Q8C5F1", 
+            "Q9R210"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        53357
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "PLA2G6", 
+      "SystematicName": [
+        "Pla2g6"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048518", 
+      "RTS_Seq": "TATTATGTAGTG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00340.1", 
+          "Accession": [
+            "P97819", 
+            "Q3U613", 
+            "Q3UN31"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        67526
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "ATG12", 
+      "SystematicName": [
+        "Atg12"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048500", 
+      "RTS_Seq": "GCTGAACCAGAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00276.1", 
+          "Accession": [
+            "Q9CQY1"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        22241
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "ULK1", 
+      "SystematicName": [
+        "Ulk1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048520", 
+      "RTS_Seq": "TCTAATAGGAGC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00454.1", 
+          "Accession": [
+            "A0A0R4J0B3", 
+            "Q6PB82", 
+            "O70405"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        67443
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "LC3B", 
+      "SystematicName": [
+        "Map1lc3b"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048499", 
+      "RTS_Seq": "GGCATTGTCTAC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00295.1", 
+          "Accession": [
+            "Q9CQV6"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        11793
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "ATG5", 
+      "SystematicName": [
+        "Atg5"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048378", 
+      "RTS_Seq": "GTTGAGCAGGTG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00277.1", 
+          "Accession": [
+            "Q99J83"
+          ]
+        }
+      ]
+    }
+  ]
+}

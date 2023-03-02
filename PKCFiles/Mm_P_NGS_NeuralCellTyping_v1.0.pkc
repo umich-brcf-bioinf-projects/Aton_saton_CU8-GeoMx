@@ -1,0 +1,259 @@
+{
+  "Name": "Mouse NGS Neural Cell Typing Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210916", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "Inflammation", 
+      "Targets": [
+        "GFAP"
+      ]
+    }, 
+    {
+      "Name": "Astrocyte", 
+      "Targets": [
+        "GFAP"
+      ]
+    }, 
+    {
+      "Name": "Oligodendrocytes", 
+      "Targets": [
+        "Myelin basic protein", 
+        "Olig2"
+      ]
+    }, 
+    {
+      "Name": "Neuron", 
+      "Targets": [
+        "MAP2", 
+        "NeuN", 
+        "Neurofilament light"
+      ]
+    }, 
+    {
+      "Name": "Microglia", 
+      "Targets": [
+        "IBA1", 
+        "TMEM119"
+      ]
+    }, 
+    {
+      "Name": "Cytoskeleton", 
+      "Targets": [
+        "MAP2", 
+        "Neurofilament light"
+      ]
+    }, 
+    {
+      "Name": "Synaptic Vesicle", 
+      "Targets": [
+        "Synaptophysin"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        52897
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "NeuN", 
+      "SystematicName": [
+        "Rbfox3"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020853", 
+      "RTS_Seq": "CCGTAACGTACT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00101.1", 
+          "Accession": [
+            "Q8BIF2"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18039
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Neurofilament light", 
+      "SystematicName": [
+        "Nefl"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048343", 
+      "RTS_Seq": "CGTGGCAGTCGC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00103.1", 
+          "Accession": [
+            "P08551"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17196
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Myelin basic protein", 
+      "SystematicName": [
+        "Mbp"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020859", 
+      "RTS_Seq": "CGGAACAGTTCC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00100.1", 
+          "Accession": [
+            "P04370", 
+            "Q5D096", 
+            "Q542T4", 
+            "Q3UGF3"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        50913
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Olig2", 
+      "SystematicName": [
+        "Olig2"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020860", 
+      "RTS_Seq": "AGTTGTCTTACA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00102.1", 
+          "Accession": [
+            "Q9EQW6", 
+            "Q542S0"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        11629
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "IBA1", 
+      "SystematicName": [
+        "Aif1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020872", 
+      "RTS_Seq": "TTCTTACAGTAG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00098.1", 
+          "Accession": [
+            "Q4FJL9", 
+            "O70200"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17756
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "MAP2", 
+      "SystematicName": [
+        "Map2"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020858", 
+      "RTS_Seq": "CCTCGCCTTCTC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00096.1", 
+          "Accession": [
+            "P20357", 
+            "Q3TLQ0", 
+            "Q3URJ7", 
+            "Q80ZL4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        231633
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "TMEM119", 
+      "SystematicName": [
+        "Tmem119"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048485", 
+      "RTS_Seq": "TGGCGATGGCGC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00210.1", 
+          "Accession": [
+            "Q8R138"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20977
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Synaptophysin", 
+      "SystematicName": [
+        "Syp"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020866", 
+      "RTS_Seq": "TATTCCAGGCGA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00112.1", 
+          "Accession": [
+            "Q62277"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        14580
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "GFAP", 
+      "SystematicName": [
+        "Gfap"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020857", 
+      "RTS_Seq": "AGGCATGACTAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00099.1", 
+          "Accession": [
+            "P03995"
+          ]
+        }
+      ]
+    }
+  ]
+}

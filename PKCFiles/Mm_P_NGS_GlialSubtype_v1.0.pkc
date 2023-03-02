@@ -1,0 +1,284 @@
+{
+  "Name": "Mouse NGS Glial Cell Subtyping Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210916", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "Melanoma", 
+      "Targets": [
+        "S100B"
+      ]
+    }, 
+    {
+      "Name": "Inflammation", 
+      "Targets": [
+        "S100B"
+      ]
+    }, 
+    {
+      "Name": "Disease-Associated Microglia", 
+      "Targets": [
+        "CD9", 
+        "GPNMB", 
+        "Mertk", 
+        "SPP1"
+      ]
+    }, 
+    {
+      "Name": "Tumor", 
+      "Targets": [
+        "S100B"
+      ]
+    }, 
+    {
+      "Name": "Astrocyte", 
+      "Targets": [
+        "S100B", 
+        "Vimentin", 
+        "Aldh1l1"
+      ]
+    }, 
+    {
+      "Name": "Antigen", 
+      "Targets": [
+        "S100B"
+      ]
+    }, 
+    {
+      "Name": "Microglia", 
+      "Targets": [
+        "CSF1R", 
+        "Ctsd", 
+        "MSR1"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        22352
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Vimentin", 
+      "SystematicName": [
+        "Vim"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048380", 
+      "RTS_Seq": "CATAGGCTGCGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00168.1", 
+          "Accession": [
+            "P20152", 
+            "Q5FWJ3"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        12978
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "CSF1R", 
+      "SystematicName": [
+        "Csf1r"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048501", 
+      "RTS_Seq": "TATTCAAGCTTC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00291.1", 
+          "Accession": [
+            "P09581", 
+            "Q6NXV8", 
+            "Q3UKC6", 
+            "Q0P635"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        107747
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Aldh1l1", 
+      "SystematicName": [
+        "Aldh1l1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048427", 
+      "RTS_Seq": "CACTCTTAAGCT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00171.1", 
+          "Accession": [
+            "Q8R0Y6"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        13033
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Ctsd", 
+      "SystematicName": [
+        "Ctsd"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048360", 
+      "RTS_Seq": "CATGGTCACTAG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00292.1", 
+          "Accession": [
+            "P18242", 
+            "Q3UCD9"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        93695
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "GPNMB", 
+      "SystematicName": [
+        "Gpnmb"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048480", 
+      "RTS_Seq": "TACGAGGACATT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00447.1", 
+          "Accession": [
+            "Q99P91"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20750
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "SPP1", 
+      "SystematicName": [
+        "Spp1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048484", 
+      "RTS_Seq": "TTCCTCTAGAGT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00448.1", 
+          "Accession": [
+            "Q3UBR1", 
+            "Q547B5", 
+            "P10923", 
+            "F8WIP8"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17289
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Mertk", 
+      "SystematicName": [
+        "Mertk"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048436", 
+      "RTS_Seq": "ATGCAGGTGGCG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00446.1", 
+          "Accession": [
+            "Q60805"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20203
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "S100B", 
+      "SystematicName": [
+        "S100b"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020819", 
+      "RTS_Seq": "GAGGATAGCATG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00056.1", 
+          "Accession": [
+            "Q3UY00", 
+            "P50114"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        12527
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "CD9", 
+      "SystematicName": [
+        "Cd9"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048364", 
+      "RTS_Seq": "AAGAGTACATTG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00289.1", 
+          "Accession": [
+            "P40240"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20288
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "MSR1", 
+      "SystematicName": [
+        "Msr1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048419", 
+      "RTS_Seq": "CCTGAATCAGAC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00449.1", 
+          "Accession": [
+            "P30204", 
+            "Q8CED7"
+          ]
+        }
+      ]
+    }
+  ]
+}

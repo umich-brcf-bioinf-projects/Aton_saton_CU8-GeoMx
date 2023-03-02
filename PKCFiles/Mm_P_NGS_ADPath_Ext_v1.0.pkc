@@ -1,0 +1,258 @@
+{
+  "Name": "Mouse NGS Alzheimer's Pathology Extended Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210916", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "AD", 
+      "Targets": [
+        "Phospho-Tau (T231)", 
+        "Phospho-Tau (S396)", 
+        "Phospho-Tau (S199)", 
+        "Phospho-Tau (S214)", 
+        "NRGN", 
+        "Neprilysin", 
+        "PSEN1", 
+        "IDE", 
+        "BACE1"
+      ]
+    }, 
+    {
+      "Name": "Post-synaptic", 
+      "Targets": [
+        "NRGN"
+      ]
+    }, 
+    {
+      "Name": "Cytoskeleton", 
+      "Targets": [
+        "Phospho-Tau (S199)", 
+        "Phospho-Tau (S214)", 
+        "Phospho-Tau (S396)", 
+        "Phospho-Tau (T231)"
+      ]
+    }, 
+    {
+      "Name": "Amyloid Processing", 
+      "Targets": [
+        "PSEN1", 
+        "Neprilysin", 
+        "IDE", 
+        "BACE1"
+      ]
+    }, 
+    {
+      "Name": "Insulin", 
+      "Targets": [
+        "IDE"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        23821
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "BACE1", 
+      "SystematicName": [
+        "Bace1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048507", 
+      "RTS_Seq": "TATATAGGCCAC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00172.1", 
+          "Accession": [
+            "Q8C4F4", 
+            "Q9CUU5", 
+            "P56818"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        64011
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "NRGN", 
+      "SystematicName": [
+        "Nrgn"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048510", 
+      "RTS_Seq": "CTGCTAATCAGA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00143.1", 
+          "Accession": [
+            "P60761"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        19164
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "PSEN1", 
+      "SystematicName": [
+        "Psen1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048502", 
+      "RTS_Seq": "CCTTGTAGCTGA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00173.1", 
+          "Accession": []
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17762
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-Tau (S199)", 
+      "SystematicName": [
+        "Mapt"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048504", 
+      "RTS_Seq": "CACCACAGATCC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00139.1", 
+          "Accession": [
+            "Q8C5K4", 
+            "P10637", 
+            "Q3UH19", 
+            "Q547J4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17762
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-Tau (S214)", 
+      "SystematicName": [
+        "Mapt"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048503", 
+      "RTS_Seq": "TTAGCCTAATCA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00141.1", 
+          "Accession": [
+            "Q8C5K4", 
+            "P10637", 
+            "Q3UH19", 
+            "Q547J4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17380
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Neprilysin", 
+      "SystematicName": [
+        "Mme"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048521", 
+      "RTS_Seq": "TACTATAGTAGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00441.1", 
+          "Accession": [
+            "Q61391"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17762
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-Tau (T231)", 
+      "SystematicName": [
+        "Mapt"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048505", 
+      "RTS_Seq": "CCTTCGGTGTCC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00137.1", 
+          "Accession": [
+            "Q8C5K4", 
+            "P10637", 
+            "Q3UH19", 
+            "Q547J4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17762
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-Tau (S396)", 
+      "SystematicName": [
+        "Mapt"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048506", 
+      "RTS_Seq": "TTCACTACATCC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00138.1", 
+          "Accession": [
+            "Q8C5K4", 
+            "P10637", 
+            "Q3UH19", 
+            "Q547J4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        15925
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "IDE", 
+      "SystematicName": [
+        "Ide"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048509", 
+      "RTS_Seq": "GATAGTCGCCAC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00145.1", 
+          "Accession": []
+        }
+      ]
+    }
+  ]
+}

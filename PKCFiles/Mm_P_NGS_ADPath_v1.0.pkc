@@ -1,0 +1,267 @@
+{
+  "Name": "Mouse NGS Alzheimer's Pathology Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210916", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "PD", 
+      "Targets": [
+        "Ubiquitin"
+      ]
+    }, 
+    {
+      "Name": "Inflammation", 
+      "Targets": [
+        "P2RX7"
+      ]
+    }, 
+    {
+      "Name": "Metabolism", 
+      "Targets": [
+        "APOE"
+      ]
+    }, 
+    {
+      "Name": "AD", 
+      "Targets": [
+        "Tdp-43", 
+        "APOE", 
+        "Tau", 
+        "Phospho-Tau (S404)", 
+        "Amyloid Precursor Protein", 
+        "Amyloid-Beta 1-42", 
+        "P2RX7"
+      ]
+    }, 
+    {
+      "Name": "RNA Processing", 
+      "Targets": [
+        "Tdp-43"
+      ]
+    }, 
+    {
+      "Name": "Proteostasis", 
+      "Targets": [
+        "Ubiquitin"
+      ]
+    }, 
+    {
+      "Name": "ALS", 
+      "Targets": [
+        "Tdp-43"
+      ]
+    }, 
+    {
+      "Name": "Microglia", 
+      "Targets": [
+        "P2RX7"
+      ]
+    }, 
+    {
+      "Name": "Cytoskeleton", 
+      "Targets": [
+        "Tau", 
+        "Phospho-Tau (S404)"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        17762
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-Tau (S404)", 
+      "SystematicName": [
+        "Mapt"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020861", 
+      "RTS_Seq": "CACGGCGTGAGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00111.1", 
+          "Accession": [
+            "Q8C5K4", 
+            "P10637", 
+            "Q3UH19", 
+            "Q547J4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17762
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Tau", 
+      "SystematicName": [
+        "Mapt"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048514", 
+      "RTS_Seq": "ATGATAGACCGC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00438.1", 
+          "Accession": [
+            "Q8C5K4", 
+            "P10637", 
+            "Q3UH19", 
+            "Q547J4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        11816
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "APOE", 
+      "SystematicName": [
+        "Apoe"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020854", 
+      "RTS_Seq": "ACAAGCTGGCTC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00109.1", 
+          "Accession": [
+            "Q3TXU4", 
+            "P08226"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        230908
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Tdp-43", 
+      "SystematicName": [
+        "Tardbp"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020865", 
+      "RTS_Seq": "CAAGGAGACCAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00108.1", 
+          "Accession": [
+            "Q6VYI5", 
+            "Q6VYI4", 
+            "Q8BLD4", 
+            "Q8R0B4", 
+            "Q8BUM1", 
+            "Q544R5", 
+            "Q921F2"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        11820
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Amyloid-Beta 1-42", 
+      "SystematicName": [
+        "App"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020855", 
+      "RTS_Seq": "TAGGATGGCGCC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00116.1", 
+          "Accession": [
+            "Q3TWF3", 
+            "P12023", 
+            "Q6GR78"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        11820
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Amyloid Precursor Protein", 
+      "SystematicName": [
+        "App"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020876", 
+      "RTS_Seq": "GGAGTGTTGTGT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00114.1", 
+          "Accession": [
+            "Q3TWF3", 
+            "P12023", 
+            "Q6GR78"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18439
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "P2RX7", 
+      "SystematicName": [
+        "P2rx7"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048513", 
+      "RTS_Seq": "CCGCAATTCACC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00211.1", 
+          "Accession": [
+            "C8YIX4", 
+            "Q6P5P0", 
+            "Q9Z1M0", 
+            "F8WI93", 
+            "Q8CHP4", 
+            "Q3UN00"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        22187
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Ubiquitin", 
+      "SystematicName": [
+        "Ubb"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020875", 
+      "RTS_Seq": "GACTTCAGCGCC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00117.1", 
+          "Accession": [
+            "Q78XY9", 
+            "P0CG49"
+          ]
+        }
+      ]
+    }
+  ]
+}

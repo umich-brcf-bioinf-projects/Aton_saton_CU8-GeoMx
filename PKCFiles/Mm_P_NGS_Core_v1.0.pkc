@@ -1,0 +1,248 @@
+{
+  "Name": "Mouse NGS Protein Core", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210802", 
+  "ReporterSpace": "1", 
+  "ProbeGroups": [
+    {
+      "Name": "Proliferation", 
+      "Targets": [
+        "Ki-67"
+      ]
+    }, 
+    {
+      "Name": "Transgene", 
+      "Targets": [
+        "GFP"
+      ]
+    }, 
+    {
+      "Name": "Background", 
+      "Targets": [
+        "Rb IgG", 
+        "Rt IgG2a", 
+        "Rt IgG2b"
+      ]
+    }, 
+    {
+      "Name": "Housekeepers", 
+      "Targets": [
+        "GAPDH", 
+        "Histone H3", 
+        "S6"
+      ]
+    }, 
+    {
+      "Name": "Total Immune", 
+      "Targets": [
+        "CD45"
+      ]
+    }, 
+    {
+      "Name": "Endothelial", 
+      "Targets": [
+        "CD31"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        360198
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Histone H3", 
+      "SystematicName": [
+        "H3c1"
+      ], 
+      "CodeClass": "Control", 
+      "RTS_ID": "RTS0020787", 
+      "RTS_Seq": "CGCGGACCATCC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00005.1", 
+          "Accession": [
+            "P68433"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        19264
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "CD45", 
+      "SystematicName": [
+        "Ptprc"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020822", 
+      "RTS_Seq": "ACGCATATTCGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00076.1", 
+          "Accession": [
+            "S4R1S4", 
+            "Q8C6Q7", 
+            "S4R1M0", 
+            "S4R2V1"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        17345
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Ki-67", 
+      "SystematicName": [
+        "Mki67"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020838", 
+      "RTS_Seq": "TGGCCAAGTACA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00070.1", 
+          "Accession": [
+            "E9PVX6"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "GFP", 
+      "SystematicName": [], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020840", 
+      "RTS_Seq": "TGACTGTATTGA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00268.1", 
+          "Accession": []
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        14433
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "GAPDH", 
+      "SystematicName": [
+        "Gapdh"
+      ], 
+      "CodeClass": "Control", 
+      "RTS_ID": "RTS0020790", 
+      "RTS_Seq": "GAGTGATAATGA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00020.1", 
+          "Accession": [
+            "P16858", 
+            "D2KHZ9", 
+            "A0A0A0MQF6"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20104
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "S6", 
+      "SystematicName": [
+        "Rps6"
+      ], 
+      "CodeClass": "Control", 
+      "RTS_ID": "RTS0020777", 
+      "RTS_Seq": "CAGACCGGAACG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00069.1", 
+          "Accession": [
+            "P62754", 
+            "Q5BLK1"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Rb IgG", 
+      "SystematicName": [], 
+      "CodeClass": "Negative", 
+      "RTS_ID": "RTS0020796", 
+      "RTS_Seq": "CGAGTATATGGC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00001.1", 
+          "Accession": []
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        18613
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "CD31", 
+      "SystematicName": [
+        "Pecam1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020851", 
+      "RTS_Seq": "GGCACAATCTCA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00104.1", 
+          "Accession": [
+            "Q08481", 
+            "Q8CAW4"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Rt IgG2b", 
+      "SystematicName": [], 
+      "CodeClass": "Negative", 
+      "RTS_ID": "RTS0020841", 
+      "RTS_Seq": "AACCAGCTATGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00064.1", 
+          "Accession": []
+        }
+      ]
+    }, 
+    {
+      "GeneID": [], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Rt IgG2a", 
+      "SystematicName": [], 
+      "CodeClass": "Negative", 
+      "RTS_ID": "RTS0020839", 
+      "RTS_Seq": "ATCTCCTCAAGA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00063.1", 
+          "Accession": []
+        }
+      ]
+    }
+  ]
+}

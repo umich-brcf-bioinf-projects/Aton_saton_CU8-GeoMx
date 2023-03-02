@@ -1,0 +1,229 @@
+{
+  "Name": "Mouse NGS Parkinson's Pathology Protein", 
+  "Version": 1.0, 
+  "AnalyteType": "Protein", 
+  "MinArea": 1600, 
+  "MinNuclei": 20, 
+  "Compatibility": "01", 
+  "Date": "210916", 
+  "ReporterSpace": "0", 
+  "ProbeGroups": [
+    {
+      "Name": "PD", 
+      "Targets": [
+        "Alpha-synuclein", 
+        "Phospho-Alpha-synuclein (S129)", 
+        "ApoA-I", 
+        "LRRK2", 
+        "Park5", 
+        "Park7", 
+        "PINK1"
+      ]
+    }, 
+    {
+      "Name": "Metabolism", 
+      "Targets": [
+        "ApoA-I"
+      ]
+    }, 
+    {
+      "Name": "AD", 
+      "Targets": [
+        "Calbindin"
+      ]
+    }, 
+    {
+      "Name": "Dopaminergic Neurons", 
+      "Targets": [
+        "Tyrosine Hydroxylase"
+      ]
+    }
+  ], 
+  "ProbeGroupVersion": 1.0, 
+  "Targets": [
+    {
+      "GeneID": [
+        11806
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "ApoA-I", 
+      "SystematicName": [
+        "Apoa1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020867", 
+      "RTS_Seq": "CTGTGAGTTAGG", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00120.1", 
+          "Accession": [
+            "Q00623"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Alpha-synuclein", 
+      "SystematicName": [], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048522", 
+      "RTS_Seq": "GGAGAGTGTTCT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00559.1", 
+          "Accession": []
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        66725
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "LRRK2", 
+      "SystematicName": [
+        "Lrrk2"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020870", 
+      "RTS_Seq": "TTGCGTGCTCAA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00121.1", 
+          "Accession": [
+            "Q9CQG8", 
+            "Q5S006"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        20617
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Phospho-Alpha-synuclein (S129)", 
+      "SystematicName": [
+        "Snca"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020868", 
+      "RTS_Seq": "TCATCTTGGAGC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00119.1", 
+          "Accession": [
+            "O55042"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        22223
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Park5", 
+      "SystematicName": [
+        "Uchl1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020873", 
+      "RTS_Seq": "TGCTCGGACGGT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00122.1", 
+          "Accession": [
+            "Q9R0P9"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        57320
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Park7", 
+      "SystematicName": [
+        "Park7"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020869", 
+      "RTS_Seq": "TTCAAGTGTATT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00123.1", 
+          "Accession": [
+            "Q99LX0"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        68943
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "PINK1", 
+      "SystematicName": [
+        "Pink1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048523", 
+      "RTS_Seq": "CGCGCCATACGC", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00440.1", 
+          "Accession": [
+            "Q99MQ3"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        12307
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Calbindin", 
+      "SystematicName": [
+        "Calb1"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0020871", 
+      "RTS_Seq": "CTGAGCTGATTA", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00125.1", 
+          "Accession": [
+            "P12658"
+          ]
+        }
+      ]
+    }, 
+    {
+      "GeneID": [
+        21823
+      ], 
+      "AnalyteType": "Protein", 
+      "DisplayName": "Tyrosine Hydroxylase", 
+      "SystematicName": [
+        "Th"
+      ], 
+      "CodeClass": "Endogenous", 
+      "RTS_ID": "RTS0048344", 
+      "RTS_Seq": "CCGAACTATGTT", 
+      "Probes": [
+        {
+          "ProbeID": "DPROT_00124.1", 
+          "Accession": [
+            "P24529"
+          ]
+        }
+      ]
+    }
+  ]
+}
