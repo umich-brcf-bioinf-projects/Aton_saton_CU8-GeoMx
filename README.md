@@ -1,6 +1,6 @@
 # Aton_saton_CU8-GeoMx
 
-Analysis code and input files for QC and DE comparisons of GeoMx whole transcriptional assay (WTA) and protein assay data. 
+Analysis code and input files for QC and DE comparisons of GeoMx whole transcriptional assay (WTA) and GeoMx protein assay data. 
 
 ## WTA
 
