@@ -78,7 +78,7 @@ setwd(Path_outputs)
 
 DCCFiles <- dir(file.path(paste0(Path_input, "nanoString_results_4207-LW_resequenced/")), pattern = ".dcc$",full.names = TRUE, recursive = TRUE)
 PKCFiles <- paste0(Path_input, "Mm_R_NGS_WTA_v1.0.pkc")
-SampleAnnotationFile <- paste0(Path_input, 'full_annotation.xlsx')
+SampleAnnotationFile <- paste0(Path_input, 'WTA_full_annotation.xlsx')
 ```
 
 ```{r data_initialize, include=T}
