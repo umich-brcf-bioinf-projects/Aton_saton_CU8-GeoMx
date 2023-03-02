@@ -1,0 +1,1064 @@
+---
+title: "Gene expression changes in ..."
+author: "ID: Aton_CU7-GeoMx<br>Bioinformatics Core Analyst: Dana King (damki@umich.edu)<br/>Investigator/PI: Sarah Aton (XXXX@med.umich.edu)<br/>"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        theme: united
+        toc: true
+        toc_depth: 4
+        toc_float: true
+        number_sections: true
+        fig_caption: true
+        keep_md: false
+---
+
+<style>
+    body .main-container {
+        max-width: 1200px;
+        font-size: 12pt;
+    }
+    /* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 16pt;
+  font-weight: bold;
+}
+</style>
+
+```{css echo=FALSE}
+.author {color: black; font-size: 12pt }
+.title {color: black; font-size: 12pt }
+```
+
+# Overview
+
+This using GeomxTools to preprocessing protein or proteogenomics data. 
+
+# Data Processing
+
+Data processing is very similar to what is shown in the [Developer_Introduction_to_the_NanoStringGeoMxSet](http://www.bioconductor.org/packages/release/bioc/vignettes/GeomxTools/inst/doc/Developer_Introduction_to_the_NanoStringGeoMxSet.html) and [GeoMx Workflow](https://www.bioconductor.org/packages/release/workflows/vignettes/GeoMxWorkflows/inst/doc/GeomxTools_RNA-NGS_Analysis.html) vignettes with a couple of protein specific functions. 
+
+```{r Load Libraries, message=FALSE, warning=FALSE}
+##### Project setup #####
+library(dplyr)
+library(ggplot2)
+library(GeomxTools)
+library(pheatmap)
+library(RColorBrewer)
+library(cowplot)
+library(ggrepel)
+
+#setwd("/nfs/mm-isilon/bioinfcore/ActiveProjects/Aton_saton_CU7-GeoMxProtein_damki_4791-LW/Code")
+
+load("../Robjs/QC.Rdata")
+#save.image(paste0(Path_Robjs, 'QC.Rdata')) ## save session
+
+##### Project setup end #####
+
+## initial project subdirectories created as part of project setup instead of in-line code
+# dir.create('../Deliverables/')
+# dir.create('../Deliverables/plots')
+# dir.create('../Deliverables/tables')
+# dir.create('../Robjs/')
+
+
+Path_tables <- "../Deliverables/tables/"
+Path_plots <- "../Deliverables/plots/"
+Path_outputs <- "../OutputFiles/"
+Path_Robjs <- "../Robjs/"
+#sessionInfo()
+```
+
+Read in protein data.
+```{r Read in Data}
+
+
+DCCFiles <- dir(file.path("../DCC_data/NanoString_results_4791-LW/"), pattern = ".dcc$",full.names = TRUE, recursive = TRUE)
+
+PKCFiles <- dir(file.path("../Inputdata/PKCFiles"), pattern = ".pkc$",full.names = TRUE, recursive = TRUE)
+
+SampleAnnotationFile <- file.path("../Inputdata/4791-LW_LabWorksheet_Annotations.xlsx")
+
+
+proteinData <- suppressWarnings(readNanoStringGeoMxSet(dccFiles = DCCFiles,
+                                                       pkcFiles = PKCFiles,
+                                                       phenoDataFile = SampleAnnotationFile,
+                                                       phenoDataSheet = "4791-LW_ROI_20220215T1126_LabWo", # sheet tab name to match, can omit
+                                                       phenoDataDccColName = "Sample_ID",
+                                                       protocolDataColNames = c("aoi",  
+                                                                                "roi", # may need to remove roi from input names to preserve in pData
+                                                                                "area"),
+                                                       configFile = NULL,
+                                                       analyte = "protein",
+                                                       phenoDataColPrefix = "",
+                                                       experimentDataColNames = NULL))
+
+#Protein Data is aggregated automatically on readin
+proteinData
+
+#save.image(paste0(Path_Robjs, 'QC.Rdata')) ## save session
+```
+
+
+# Protein 
+
+### Segment QC
+After reading in the object, we will first flag and remove low quality ROIs as recommended by vignette. 
+
+```{r GeomxTools QC}
+proteinData <- setSegmentQCFlags(proteinData, qcCutoffs = list(percentSaturation = 45,
+                                                               minSegmentReads=1000, 
+                                                               percentAligned=80, 
+                                                               minNegativeCount=10, 
+                                                               maxNTCCount=60, 
+                                                               minNuclei=16000, 
+                                                               minArea=20))
+
+# low sequenced ROIs
+lowSaturation <- which(as.data.frame(protocolData(proteinData)[["QCFlags"]])["LowSaturation"] == TRUE)
+
+### added to vignette code- write out tables for QC stats and summary
+## QC stats
+varLabels(protocolData(proteinData)) # can see QC stats labelbels but unclear how to access
+colnames(as.data.frame(pData(protocolData(proteinData))))[c(4:24)]  # accessed full QC stats
+str(as.data.frame(pData(protocolData(proteinData)))[, c(4:24)]) # QC stats table has nested structure so need to flatten before writing out ot file
+
+QC_stats_raw <- as.data.frame(pData(protocolData(proteinData)))
+QC_stats <- QC_stats_raw[,c(4:16)] ## subset to first set of flat columns
+QC_stats <- cbind(QC_stats, QC_stats_raw$`Trimmed (%)`[1], QC_stats_raw$`Stitched (%)`[1], 
+                  QC_stats_raw$`Aligned (%)`[1], QC_stats_raw$`Saturated (%)`[1])
+str(QC_stats) # now a flat table
+
+write.csv(QC_stats, file = paste0(Path_tables,"QC_stats.csv"), 
+          row.names = FALSE)
+
+## TRUE/FALSE results for thresholds
+#head(as.data.frame(protocolData(proteinData)[["QCFlags"]]))
+write.csv(as.data.frame(protocolData(proteinData)[["QCFlags"]]), file = paste0(Path_tables,"QC_thresholds.csv"))
+
+## create same style of QC summary as RNA
+
+# remove low quality ROIs
+passedQC <- proteinData[, -lowSaturation]
+dim(proteinData)
+dim(passedQC)
+```
+Most (119/121) AOIs pass saturation thresholds, but vignette examples proceed with full dataset. Re-ran with only passed AOIs after initial round of processing.
+
+### Target QC
+
+Housekeepers and negative controls (IgGs) can easily be pulled out of the dataset. 
+
+```{r HK and IgGs}
+hk.names <- hkNames(passedQC)
+hk.names
+
+igg.names <- iggNames(passedQC)
+igg.names
+```
+
+For the target QC step, we identify proteins with potentially little useful signal using this figure. 
+```{r target QC, fig.width= 16, fig.height=7}
+fig <- qcProteinSignal(object = passedQC, neg.names = igg.names)
+
+proteinOrder <- qcProteinSignalNames(object = passedQC, neg.names = igg.names)
+
+
+fig()
+rect(xleft = 0, xright = 3.5,
+     ybottom = -3, ytop = 2, density = 0, col = "#1B9E77", lwd = 2) # highlight negative controls; need to adjust box boundaries 
+
+## genes of interest are manually defined
+genesOfInterest <- c(which(proteinOrder == "BIM"))
+
+rect(xleft = genesOfInterest[1]-0.5, xright = genesOfInterest[1]+0.5,
+     ybottom = -1.5, ytop = 1.5, density = 0, col = "#D95F02", lwd = 2) # highlight gene with detection near background, need to pull ids/position manually
+
+```
+
+(Plot interpretation/highlighting is based on vignette)
+  -	Negative controls (IgGs) (cyan) are plotted on the far left of the plot.
+  -	Four other proteins (orange) hover background in all segments and might need to be excluded from analysis. 
+  -	ApoA-I (green) is mostly near-background, but it has meaningfully high signal in a handful of segments. 
+  -	EpCAM (pink) seems to have lower background than the negative controls. But its long range, and especially the existence of points well above background, suggests this protein has interpretable data. 
+
+The highlighted proteins may require further investigation after differential expression analysis but can typically be kept in the study.  (Unclear from vignette when to include/exclude proteins that have detection close to background)
+
+```{r, fig.width= 16, fig.height=7}
+proteinOrder <- qcProteinSignalNames(object = passedQC, neg.names = igg.names)
+
+Low <- which(proteinOrder == "BIM")
+
+fig()
+rect(xleft = 3.5, xright = Low+0.5, ybottom = -6, ytop = 10, density = 2, col = "red", lty = 3)
+```
+After finalizing, will want to write out plot to file - re-run plotting and ensure that proteins to be filtered are highlighted.
+
+```{r include = FALSE}
+png(paste0(Path_plots, 'Protein_target_signal-to-background_withbox.png'), width=10, height=5, res = 300, units = "in")
+proteinOrder <- qcProteinSignalNames(object = passedQC, neg.names = igg.names)
+
+Low <- which(proteinOrder == "BIM")
+
+fig()
+rect(xleft = 3.5, xright = Low+0.5, ybottom = -6, ytop = 10, density = 2, col = "red", lty = 3)
+dev.off()
+```
+
+
+Vignette provides example code if you choose to remove probes with detection close to background.
+
+In bulk example:
+```{r, fig.width= 16, fig.height=7, eval=FALSE}
+# proteinOrder <- qcProteinSignalNames(object = passedQC, neg.names = igg.names)
+# length(proteinOrder)
+# 
+# P62 <- which(proteinOrder == "P62")
+# 
+# fig()
+# rect(xleft = 3.5, xright = P62, ybottom = -6, ytop = 10, density = 2, col = "red", lty = 3)
+# 
+# #Right most protein where all proteins to the left will get removed
+# #start at 4 to keep the 3 IgG targets
+# proteinOrder <- proteinOrder[-c(4:P62)]
+# length(proteinOrder)
+# 
+# #replot with fewer targets
+# fig <- qcProteinSignal(object = passedQC[proteinOrder,], neg.names = igg.names)
+# fig()
+```
+
+Or by specific proteins: 
+```{r, fig.width= 12, fig.height=7, eval=FALSE}
+# proteinOrder <- qcProteinSignalNames(object = passedQC[proteinOrder,], neg.names = igg.names)
+# #which proteins to remove from analysis
+# lowTargets <- c("pan-RAS", "Neprilysin", "Olig2", "P2ry12", "p53", "NY-ESO-1", "INPP4B", "CD31", "Phospho-Alpha-synuclein (S129)", "Bcl-2")
+# proteinOrder <- proteinOrder[-c(which(proteinOrder %in% lowTargets))]
+# length(proteinOrder)
+# 
+# fig <- qcProteinSignal(object = passedQC[proteinOrder,], neg.names = igg.names)
+# fig()
+```
+
+
+Will filter with bulk method up to "BIM" protein (which overlaps baseline)
+```{r, fig.width= 16, fig.height=7, eval=FALSE}
+proteinOrder <- qcProteinSignalNames(object = passedQC, neg.names = igg.names)
+length(proteinOrder)
+
+ProteinStop <- which(proteinOrder == "BIM")
+
+fig()
+rect(xleft = 3.5, xright = ProteinStop, ybottom = -6, ytop = 10, density = 2, col = "red", lty = 3)
+
+#Right most protein where all proteins to the left will get removed
+#start at 4 to keep the 3 IgG targets
+proteinOrder <- proteinOrder[-c(4:ProteinStop)]
+length(proteinOrder)
+
+#replot with fewer targets
+fig <- qcProteinSignal(object = passedQC[proteinOrder,], neg.names = igg.names)
+fig()
+```
+
+Output plot to show signal after filtering
+
+```{r}
+png(paste0(Path_plots, 'Protein_target_signal-to-background_postFilter.png'), width=10, height=5, res = 300, units = "in")
+fig <- qcProteinSignal(object = passedQC[proteinOrder,], neg.names = igg.names)
+fig()
+dev.off()
+```
+
+Subset data to actually exclude instead of only modifying plot.
+
+```{r}
+# remove low signal probes
+passedQC <- passedQC[proteinOrder, ]
+dim(passedQC)
+```
+
+
+
+```{r}
+#save.image(paste0(Path_Robjs, 'QC.Rdata')) ## save session
+```
+
+
+### Normalization
+
+For more information on protein normalization please refer to our [whitepaper](https://nanostring.com/resources/introduction-to-geomx-normalization-protein/). 
+
+After filtering targets, we move onto normalization. There are many types of normalization and we have two built in figure types to help decide what is the best method for the dataset. 
+
+The first is a concordance plot of a list of targets, normally the IgGs or HK, colored by ROI factors like tissue or segment type. The upper panels are the concordance plots and the lower panels are the standard deviation of the log2-ratios between the targets. This figure does not show correlations because that calculation is increased with the large range that these values can take (`r min(exprs(proteinData[igg.names,]))`-`r as.integer(max(exprs(proteinData[igg.names,])))` in this example). SD(log2(ratios)) measures essentially the same thing but is invariant to that range. However the metrics are inversed, high correlation = low SDs. 
+
+Our motivating theory is simple: if several targets all accurately measure signal strength, they should be highly correlated with each other. More precisely, the log-ratios between them should have low SDs.
+
+```{r IgG concordance, fig.height=8, fig.width=8}
+plotConcordance(object = passedQC, targetList = igg.names, plotFactor = "slide name") # modify plot factor to one from annotation sheet
+```
+All negative probes (IGs) seem to have decent concordance (as recommended by sDAS contact), which is good. 
+
+Output plot to file - needed some size adjustments to make slide labels more readable.   
+
+```{r IgG concordance, fig.height=8, fig.width=8}
+png(paste0(Path_plots, 'IG-concordance_bySlide.png'), width=12, height=10, res = 300, units = "in")
+plotConcordance(object = passedQC, targetList = igg.names, plotFactor = "slide name") # using slide name instead of tissue
+dev.off()
+
+```
+
+Concordance amongst the IgGs were lower than the demo but might be good enough. 
+
+Numbers in the top-right panels show the SD of the log2-ratios between IgGs. Do we see a tendency for one IgG to be offset from the others, which would suggest a between-slide bias in calculation of background? - no, seems to be fiarly similar (although see lower barplot for S2 it seems)
+
+**UPDATE 3 - generate full set of concordance plots**
+
+```{r IgG concordance update, fig.height=8, fig.width=8}
+png(paste0(Path_plots, 'IG-concordance_byRegion.png'), width=12, height=10, res = 300, units = "in")
+plotConcordance(object = passedQC, targetList = igg.names, plotFactor = "Region") # using slide name instead of tissue
+dev.off()
+
+png(paste0(Path_plots, 'IG-concordance_byCFC.png'), width=12, height=10, res = 300, units = "in")
+plotConcordance(object = passedQC, targetList = igg.names, plotFactor = "CFC") # using slide name instead of tissue
+dev.off()
+
+```
+
+```{r HK concordance, fig.height=8, fig.width=8}
+png(paste0(Path_plots, 'HK-concordance_bySlide.png'), width=12, height=10, res = 300, units = "in")
+plotConcordance(object = passedQC, targetList = hk.names, plotFactor = "slide name") # using slide name instead of tissue
+dev.off()
+
+png(paste0(Path_plots, 'HK-concordance_byRegion.png'), width=12, height=10, res = 300, units = "in")
+plotConcordance(object = passedQC, targetList = hk.names, plotFactor = "Region") # using slide name instead of tissue
+dev.off()
+
+png(paste0(Path_plots, 'HK-concordance_byCFC.png'), width=12, height=10, res = 300, units = "in")
+plotConcordance(object = passedQC, targetList = hk.names, plotFactor = "CFC") # using slide name instead of tissue
+dev.off()
+
+```
+
+
+The second plot helps show the concordance of normalization factors. The factors are calculated on the IgG and HK targets and the area or nuclei count if provided. The lower panels are the concordance plots and the upper panels are the standard deviation of the log2-ratios between the normalization factors.
+
+```{r norm concordance, fig.height=8, fig.width=8}
+normfactors <- computeNormalizationFactors(object = passedQC,
+                                           area = "area",
+                                           nuclei = "Nuclei.Counts") # don't have nuclei count information reported for this assay
+
+plotNormFactorConcordance(object = passedQC, plotFactor = "slide name", # modified plot factor to match annotations
+                          normfactors = normfactors)
+```
+Output plots - slide + annotation sheet option
+```{r}
+png(paste0(Path_plots, 'NormalizationFactors_bySlide.png'), width=12, height=10, res = 300, units = "in")
+plotNormFactorConcordance(object = passedQC, plotFactor = "slide name", # modified plot factor to match annotations
+                          normfactors = normfactors)
+dev.off()
+
+```
+
+
+From this plot we can conclude that:
+
+  -	Area & Housekeeping genes (HK) have the best concordance, with lower concordance between HK & neg geomean
+  - Overall concodance seems to be lower than the example 
+  - It seems like Neg geomeans leads to the most simiar means across the slides so is perhaps the best option
+
+The divergence of area and nuclei vs IgGs and HKs is common which is why Background or HK normalization is recommended. The area and nuclei plots are good QC metrics to look for outliers or additionally can help you potentially ID some preferential bias in a study design.
+
+After choosing a normalization technique from these plots, we normalize the data. Area and nuclei normalization are not native functions in GeomxTools, if you decide on normalizing by those factors you will need to do that separately. Quantile normalization is also available if HK or background normalization are not preferred. 
+
+**UPDATE 3 - generating additional concordance plots to address H3 Histone concerns **
+
+```{r IggHKConcord}
+pData(passedQC)
+
+# plot for region
+plotConcordance(object = passedQC, targetList = c(igg.names,hk.names), plotFactor = "Region")
+
+# plot for CFC status
+plotConcordance(object = passedQC, targetList = c(igg.names,hk.names), plotFactor = "CFC")
+```
+
+See definite bimodality for CFC/No CFC status for Histone H3. Output plots to file.
+
+```{r}
+png(paste0(Path_plots, 'NormalizationFactors_byRegion.png'), width=14, height=14, res = 300, units = "in")
+# plot for region
+plotConcordance(object = passedQC, targetList = c(igg.names,hk.names), plotFactor = "Region")
+dev.off()
+
+
+png(paste0(Path_plots, 'NormalizationFactors_byCFC.png'), width=14, height=14, res = 300, units = "in")
+# plot for CFC status
+plotConcordance(object = passedQC, targetList = c(igg.names,hk.names), plotFactor = "CFC")
+dev.off()
+```
+
+
+```{r}
+png(paste0(Path_plots, 'NormalizationFactors_HK-byRegion.png'), width=12, height=10, res = 300, units = "in")
+# plot for region
+plotConcordance(object = passedQC, targetList = hk.names, plotFactor = "Region")
+dev.off()
+
+
+png(paste0(Path_plots, 'NormalizationFactors_HK-byCFC.png'), width=12, height=10, res = 300, units = "in")
+# plot for CFC status
+plotConcordance(object = passedQC, targetList = hk.names, plotFactor = "CFC")
+dev.off()
+```
+
+
+~~UPDATE - after discussion with Jerid from Nanostring, will use HK normalization as that's what he recommended generally (since correlates with area? and is "more consistent") but particularly for NGS read out due to the higher plex.~~
+
+**UPDATE 2 - after discussion with sDAS, recommended background (IG) normalization over HK but if possible, test both to ensure patterns in DE comparisons are not artifacts/skewed due to normalization**
+
+
+
+```{r GeomxTools Normalization}
+## correct column names to match RNA
+colnames(pData(passedQC))[2] <- "Scan_ID"
+hk.names
+
+#HK normalization
+normed_hk <- normalize(passedQC, norm_method="hk", toElt = "hk_norm", housekeepers = c("S6" , "GAPDH" )) # updated to limit to filtered data - need to use 'hk_norm' parameter in downstream DE; update 2 -further limit to only two of housekeeping  genes
+
+# Neg control (IG) normalization
+normed_neg <- normalize(passedQC, norm_method="neg", toElt = "neg_norm") # uses filtered data  & will need to use 'neg_norm' parameter in downstream DE
+# 
+# #Quantile normalization
+normed_q3 <- normalize(passedQC, norm_method="quant", desiredQuantile = .75, toElt = "q_norm")
+
+names(passedFilt@assayData)
+
+#save.image(paste0(Path_Robjs, 'QC.Rdata')) ## save session
+```
+
+### Additional visualizations 
+
+Shelved modifying code from `evaluate_normalization_options.R` to generate additional visualizations.
+
+This dataset is now ready for downstream analysis. (What does the downstream analysis look like? What other QC should be looked at? White paper more/other plot examples not included in vignette?)
+
+NOTE - would be a helpful to output the raw/filtered counts along with intermediate R objs (like done for RNA data) prior to differential expression comaprisons.
+
+#### Heatmap & PCA
+
+Borrowing additional visualizations from analysis of related RNA project (CU6/CU8).
+
+Test for both negative normed and HK normed approach.
+
+```{r}
+# normed <- normed_hk
+# norm_counts_scaled <- t(scale(t(normed@assayData$hk_norm), center=T, scale=T))
+# norm_method <- "hk_norm"
+
+# normed <- normed_neg
+# norm_counts_scaled <- t(scale(t(normed@assayData$neg_norm), center=T, scale=T))
+# norm_method <- "neg_norm"
+
+normed <- normed_q3
+norm_counts_scaled <- t(scale(t(normed@assayData$q_norm), center=T, scale=T))
+norm_method <- "q_norm"
+```
+
+
+```{r pca_all_segs, include=T}
+# PCA
+#norm_counts_scaled <- t(scale(t(normed@assayData$hk_norm), center=T, scale=T)) # moved up to separate section 
+pca <- prcomp(t(norm_counts_scaled))
+pov <- summary(pca)$importance['Proportion of Variance',]
+
+pData(normed)[, c("PC1", "PC2", "PC3")] <- pca$x[,1:3]
+
+pca_slide <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Scan_ID)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_sleep <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Sleep)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_mouse <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Mouse)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_sleep <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Sleep)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_cfc <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = CFC)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_region <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Region)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_position <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = `Position(Repetition)`)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+# output plots
+pca_allsegs_plots <- plot_grid(pca_slide, pca_mouse, pca_sleep, pca_cfc, pca_region, pca_position, ncol=3, align='hv')
+# ggsave(paste0(Path_plots, 'PCA_allsegs_', norm_method,'.pdf'), pca_allsegs_plots, width=21, height=9)
+# ggsave(paste0(Path_plots, 'PCA_allsegs_', norm_method,'.png'), pca_allsegs_plots, width=21, height=9, dpi=300, bg="white")
+
+ggsave(paste0(Path_plots, 'PCA_allsegs_', norm_method,'.pdf'), pca_allsegs_plots, width=21, height=9)
+ggsave(paste0(Path_plots, 'PCA_allsegs_', norm_method,'.png'), pca_allsegs_plots, width=21, height=9, dpi=300, bg="white")
+
+```
+
+Next, generate heatmap
+
+```{r heatmap_topvargenes, include=T}
+pData(normed)
+sData(normed)
+
+calc_CV <- function(x) {sd(x) / mean(x)}
+CV_dat <- assayDataApply(normed,
+                         elt = norm_method, MARGIN = 1, calc_CV) # replace normalization approach from RNA (log_q) with protein (hk_norm in this case)
+# show the highest CD genes and their CV values
+topCDgenes <- sort(CV_dat, decreasing = TRUE)[1:10]
+
+
+# Identify genes in the top 3rd of the CV values
+GOI <- names(CV_dat)[CV_dat > quantile(CV_dat, 0.75)]
+
+ph_data <- assayDataElement(normed[GOI, ], elt = norm_method)
+colnames(ph_data) <- gsub('-GeoMx1', '', paste(pData(normed)$`slide name`, normed@protocolData@data$roi, sep=' | '))
+ph_anno <- data.frame(pData(normed) %>% select(Scan_ID, Mouse, Sleep, CFC, Region, `Position(Repetition)`)) # no Scan_ID column for some reason?
+
+row.names(ph_anno) <- gsub('-GeoMx1', '', paste(pData(normed)$`slide name`, normed@protocolData@data$roi, sep=' | '))
+
+topCV <- pheatmap(ph_data,
+         scale = "row", 
+         show_rownames = FALSE, show_colnames = FALSE,
+         border_color = NA,
+         clustering_method = "ward.D2",
+         breaks = seq(-3, 3, 0.05),
+         color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(120), # modified color scale
+         annotation_col = ph_anno)
+
+# ggsave(paste0(Path_plots, 'heatmap_topCV_', norm_method,'.pdf'), topCV, width=10, height=12, limit=F)
+# ggsave(paste0(Path_plots, 'heatmap_topCV_', norm_method,'.png'), topCV, width=10, height=12, limit=F, dpi=300, bg="white")
+
+ggsave(paste0(Path_plots, 'heatmap_topCV_', norm_method,'HK_noH3.pdf'), topCV, width=10, height=12, limit=F)
+ggsave(paste0(Path_plots, 'heatmap_topCV_', norm_method,'HK_noH3.png'), topCV, width=10, height=12, limit=F, dpi=300, bg="white")
+
+```
+
+Write out table of raw & normalized data (to be better aligned with WTA deliverables)
+
+```{r save_data, include=F}
+
+saveRDS(proteinData, paste0(Path_Robjs,'rawData.rds'))
+saveRDS(passedQC, paste0(Path_Robjs,'FiltData.rds'))
+saveRDS(normed_hk, paste0(Path_Robjs,'normalized_hk.rds'))
+saveRDS(normed_neg, paste0(Path_Robjs,'normalized_neg.rds'))
+saveRDS(normed_q3, paste0(Path_Robjs,'normalized_q3.rds'))
+
+
+write.csv(normed_hk@assayData$hk_norm, paste0(Path_tables, 'filtered_hknorm.csv'))
+write.csv(normed_neg@assayData$neg_norm, paste0(Path_tables, 'filtered_negnorm.csv'))
+write.csv(normed_q3@assayData$q_norm, paste0(Path_tables, 'filtered_q3norm.csv'))
+
+
+## generate unnormalized but filtered table as well
+write.csv(exprs(passedQC), paste0(Path_tables, 'filtered_rawcounts.csv'))
+
+save.image("../Robjs/QC.Rdata")
+```
+
+
+### Differential comparisons
+
+```{r DE_setup, include = F}
+Path_DE <- paste0("../Deliverables/DE-",norm_method,"/")
+dir.create(Path_DE)
+
+## confirm correct normalization choice is assigned
+normed <- normed_q3
+norm_counts_scaled <- t(scale(t(normed@assayData$q_norm), center=T, scale=T))
+norm_method <- "q_norm"
+
+```
+
+Will run same comparisons as RNA data (CU6/CU8). Weisheng shared code that included the comparisons with the notes:
+- Line 593 starts the block to do the LMM with the model treatment1 + treatment2 + (1|slide)
+- Line 828 starts the block for the LMM with 2 random effects (which we decided not to use)
+
+Pulling code from Weisheng's CU8 analysis to run comparisons
+
+```{r LMM_DE_function, include=F}
+# model formula
+FORMULA_STRING <- function(TEST_TAG_, RANDOM_FACTORS_, PAIR_TYPE_) {
+    if (grepl('\\++', as.character(RANDOM_FACTORS_))) {
+        RANDOM_FACTOR_1 <- strsplit(RANDOM_FACTORS_, '\\++')[[1]][1]
+        RANDOM_FACTOR_2 <- strsplit(RANDOM_FACTORS_, '\\++')[[1]][2]
+        if (PAIR_TYPE_ == 'between_slides') {
+             return(as.formula(paste('~', TEST_TAG_, '+ ', RANDOM_FACTOR_1, ' + (1 | ', RANDOM_FACTOR_2, ')', sep=' ')))} else if (PAIR_TYPE_ == 'within_slides') {
+             return(as.formula(paste('~', TEST_TAG_, '+ ', RANDOM_FACTOR_1, '+ (1 + ', TEST_TAG_, ' | ', RANDOM_FACTOR_2, ')', sep=' ')))}
+        } else {
+        if (PAIR_TYPE_ == 'between_slides') {
+             return(as.formula(paste('~', TEST_TAG_, '+ (1 | ', RANDOM_FACTORS_, ')', sep=' ')))} else if (PAIR_TYPE_ == 'within_slides') {
+             return(as.formula(paste('~', TEST_TAG_, '+ (1 + ', TEST_TAG_, ' | ', RANDOM_FACTORS_, ')', sep=' ')))}
+    }
+}
+
+# LMM test
+lmm_de <- function(PAIR_TYPE, TEST_SET_FULL, TEST_TAG, CONTRAST_NAME, RANDOM_FACTORS, NORM_METHOD="q_norm", FDRCUTOFF, FCCUTOFF) {
+
+GROUP1 <- as.character(strsplit(strsplit(CONTRAST_NAME, ':')[[1]][1], '--')[[1]][1])
+GROUP2 <- as.character(strsplit(strsplit(CONTRAST_NAME, ':')[[1]][1], '--')[[1]][2])
+
+TEST_SET <- TEST_SET_FULL[, as.character(pData(TEST_SET_FULL)[,as.character(TEST_TAG)]) %in% c(GROUP1, GROUP2)]
+cat(paste0('\nExtracted the subset of the input dataset to contain only ', GROUP1, ' and ', GROUP2, ' in ', TEST_TAG,'\n'))
+
+pData(TEST_SET)[,as.character(TEST_TAG)] <- factor(pData(TEST_SET)[,as.character(TEST_TAG)], levels = c(GROUP1, GROUP2))
+
+for (RANDOM_FACTOR in strsplit(RANDOM_FACTORS, '\\++')[[1]]) {
+    pData(TEST_SET)[,as.character(RANDOM_FACTOR)] <- as.factor(pData(TEST_SET)[,as.character(RANDOM_FACTOR)])
+}
+
+formula_strings_ <- paste(as.character(FORMULA_STRING(TEST_TAG, RANDOM_FACTORS, PAIR_TYPE)), collapse='')
+
+cat(
+paste0('\nRunning the test:
+mixedModelDE(
+    TEST_SET,
+    elt =',NORM_METHOD,',
+    modelFormula = ',formula_strings_,',
+    groupVar = as.character("',TEST_TAG,'"),
+    nCores = 10,
+    multiCore = FALSE)')
+)
+
+MIXEDOUTMC <- mixedModelDE(
+    TEST_SET,
+    elt = NORM_METHOD,
+    modelFormula = FORMULA_STRING(TEST_TAG, RANDOM_FACTORS, PAIR_TYPE),
+    groupVar = as.character(TEST_TAG),
+    nCores = 10,
+    multiCore = FALSE)
+
+cat('\nDone with the test.\n')
+
+R_TEST <- do.call(rbind, MIXEDOUTMC["lsmeans", ])
+R_TEST <- as.data.frame(R_TEST)
+R_TEST$Contrast <- CONTRAST_NAME
+R_TEST$Random <- as.character(RANDOM_FACTORS)
+R_TEST$Model <- as.character(formula_strings_)
+
+R_TEST$Gene <- 
+        unlist(lapply(colnames(MIXEDOUTMC),
+                      rep, nrow(MIXEDOUTMC["lsmeans", ][[1]])))
+
+R_TEST$FDR <- p.adjust(R_TEST$`Pr(>|t|)`, method = "fdr")
+R_TEST <- R_TEST[, c("Gene", "Contrast", "Model", "Estimate", "Pr(>|t|)", "FDR")]
+colnames(R_TEST) <- c("Gene", "Contrast", "Model", "log2FC", "Pvalue", "FDR")
+R_TEST <- R_TEST %>% mutate(DE = case_when(((FDR < as.numeric(FDRCUTOFF)) & (abs(log2FC) > log2(as.numeric(FCCUTOFF)))) ~ 'YES', TRUE ~ 'NO')) %>% arrange(FDR, desc(abs(log2FC)))
+return(R_TEST)
+}
+```
+
+Additional information also pulled from `DE_summary_pathway` excel worksheet, that had 9 comparisons highlighted as priority.
+
+| comparison | model |
+|:---------|:--------|
+| CFC--No_CFC:DG_sup:random_Sleep_Slide |	~CFC + Sleep + (1 | Scan_ID) |
+| CFC--No_CFC:DG_inf:random_Sleep_Slide |	~CFC + Sleep + (1 | Scan_ID) |
+| SD--Sleep:DG_sup:random_CFC_Slide |	~Sleep + CFC + (1 | Scan_ID) |
+| SD--Sleep:Hilus:random_CFC_Slide |	~Sleep + CFC + (1 | Scan_ID) |
+| SD--Sleep:DG_inf:random_CFC_Slide |	~Sleep + CFC + (1 | Scan_ID) |
+| SD--Sleep:CA1:random_CFC_Slide |	~Sleep + CFC + (1 | Scan_ID) |
+| SD--Sleep:CA3:random_CFC_Slide |	~Sleep + CFC + (1 | Scan_ID) |
+| DG_inf--DG_sup:Sleep:random_CFC_Slide_intercept |	~Region + CFC + (1 | Scan_ID) |
+| DG_inf--DG_sup:SD:random_CFC_Slide_intercept |	~Region + CFC + (1 | Scan_ID) |
+
+**Note - intially ran the wrong DG_inf--DG_sup comparison that separates the CFC/NoCFC areas. Need to go back and run correct comparison that compare DG_inf-DG_sup without subsetting CFC/No_CFC (e.g. `DG_inf--DG_sup:Sleep:random_CFC_Slide_intercept` & `DG_inf--DG_sup:SD:random_CFC_Slide_intercept`)
+
+```{r LMM_DE_function, include=F}
+
+## run tests
+regions <- unique(pData(normed)$Region)
+
+de_res <- list()
+
+## test individual comparison first
+
+# CFC vs No_CFC in each region, with Sleep and Scan_ID as random factors - need to include hk_norm as normalization method
+for (i in regions) {
+    test_data <- normed[, pData(normed)$Region == i]
+    contrast_id <- paste('CFC--No_CFC', i, 'random_Sleep_Slide', sep=':')
+    de_res[[contrast_id]] <- lmm_de('between_slides', test_data, 'CFC', contrast_id, 'Sleep++Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}
+
+# SD vs Sleep in each region, with CFC and Scan_ID as random factors
+for (i in regions) {
+    test_data <- normed[, pData(normed)$Region == i]
+    contrast_id <- paste('SD--Sleep', i, 'random_CFC_Slide', sep=':')
+    de_res[[contrast_id]] <- lmm_de('between_slides', test_data, 'Sleep', contrast_id, 'CFC++Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}
+
+# DG_inf vs DG_sup in Sleep and SD separately, with CFC and Slide as random factors (Slide as a random slope)
+for (i in c('Sleep','SD')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')))]
+    contrast_id <- paste('DG_inf--DG_sup', i, 'random_CFC_Slide', sep=':')
+    de_res[[contrast_id]] <- lmm_de('within_slides', test_data, 'Region', contrast_id, 'CFC++Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}
+
+# DG_inf vs DG_sup in Sleep and SD separately, with CFC and Slide as random factors (Slide as a random intercept)
+for (i in c('Sleep','SD')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')))]
+    contrast_id <- paste('DG_inf--DG_sup', i, 'random_CFC_Slide_intercept', sep=':')
+    de_res[[contrast_id]] <- lmm_de('between_slides', test_data, 'Region', contrast_id, 'CFC++Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}
+
+# CFC vs No_CFC in each region, in Sleep and SD separately, with Slide as random factor
+for (i in regions) {
+    for (j in c('Sleep', 'SD')) {
+    test_data <- normed[, ((pData(normed)$Region == i) & (pData(normed)$Sleep == j))]
+    contrast_id <- paste('CFC--No_CFC', i, j, 'random_Slide', sep=':')
+    de_res[[contrast_id]] <- lmm_de('between_slides', test_data, 'CFC', contrast_id, 'Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}}
+
+# SD vs Sleep in each region, in CFC and No_CFC separtely, with Slide as random factor
+for (i in regions) {
+    for (j in c('CFC', 'No_CFC')) {
+    test_data <- normed[, ((pData(normed)$Region == i) & (pData(normed)$CFC == j))]
+    contrast_id <- paste('SD--Sleep', i, j, 'random_Slide', sep=':')
+    de_res[[contrast_id]] <- lmm_de('between_slides', test_data, 'Sleep', contrast_id, 'Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}}
+
+# DG_inf vs DG_sup in Sleep and SD separately, in CFC and No_CFC separately, with Slide as random factor (random slope)
+for (i in c('Sleep','SD')) {
+    for (j in c('CFC', 'No_CFC')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')) & (pData(normed)$CFC == j))]
+    contrast_id <- paste('DG_inf--DG_sup', i, j, 'random_Slide', sep=':')
+    de_res[[contrast_id]] <- lmm_de('within_slides', test_data, 'Region', contrast_id, 'Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}}
+
+#####
+
+# DG_inf vs DG_sup in Sleep and SD separately, in CFC and No_CFC separately, with Slide as random factor (random intercept)
+for (i in c('Sleep','SD')) {
+    for (j in c('CFC', 'No_CFC')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')) & (pData(normed)$CFC == j))]
+    contrast_id <- paste('DG_inf--DG_sup', i, j, 'random_Slide_intercept', sep=':')
+    de_res[[contrast_id]] <- lmm_de('between_slides', test_data, 'Region', contrast_id, 'Scan_ID', NORM_METHOD = norm_method, 0.1, 1)
+}}
+
+# write out
+saveRDS(de_res, file=paste0(Path_Robjs,'de_res.rds'))
+
+for (i in names(de_res)) {
+write.table(de_res[[i]], gsub(':', '-', paste0(Path_DE, 'DEG_', i, '.txt')), row.names=F, col.names=T, quote=F, sep='\t')} # Need to set DE path
+
+save.image("../Robjs/QC.Rdata")
+```
+
+```{r summarize_de, include=F}
+call_res <- matrix(,,5)
+
+# CFC vs No_CFC in each region, with Sleep and Scan_ID as random factors
+for (i in regions) {
+    test_data <- normed[, pData(normed)$Region == i]
+    contrast_id <- paste('CFC--No_CFC', i, 'random_Sleep_Slide', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('CFC', 'Sleep++Scan_ID', 'between_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$CFC == 'CFC'])
+    group2_num <- ncol(test_data[,pData(test_data)$CFC == 'No_CFC'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}
+
+# Sleep vs SD in each region, with CFC and Scan_ID as random factors
+for (i in regions) {
+    test_data <- normed[, pData(normed)$Region == i]
+    contrast_id <- paste('SD--Sleep', i, 'random_CFC_Slide', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('Sleep', 'CFC++Scan_ID', 'between_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$Sleep == 'SD'])
+    group2_num <- ncol(test_data[,pData(test_data)$Sleep == 'Sleep'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}
+
+# DG_inf vs DG_sup in Sleep and SD separately, with CFC and Slide as random factors (random slope for Slide)
+for (i in c('Sleep','SD')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')))]
+    contrast_id <- paste('DG_inf--DG_sup', i, 'random_CFC_Slide', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('Region', 'CFC++Scan_ID', 'within_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$Region == 'DG_inf'])
+    group2_num <- ncol(test_data[,pData(test_data)$Region == 'DG_sup'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}
+
+# DG_inf vs DG_sup in Sleep and SD separately, with CFC and Slide as random factors (random intercept for Slide)
+for (i in c('Sleep','SD')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')))]
+    contrast_id <- paste('DG_inf--DG_sup', i, 'random_CFC_Slide_intercept', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('Region', 'CFC++Scan_ID', 'between_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$Region == 'DG_inf'])
+    group2_num <- ncol(test_data[,pData(test_data)$Region == 'DG_sup'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}
+
+# CFC vs No_CFC in each region, in Sleep and SD separately, with Slide as random factor
+for (i in regions) {
+    for (j in c('Sleep', 'SD')) {
+    test_data <- normed[, ((pData(normed)$Region == i) & (pData(normed)$Sleep == j))]
+    contrast_id <- paste('CFC--No_CFC', i, j, 'random_Slide', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('CFC', 'Scan_ID', 'between_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$CFC == 'CFC'])
+    group2_num <- ncol(test_data[,pData(test_data)$CFC == 'No_CFC'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}}
+
+# Sleep vs SD in each region, in CFC and No_CFC separtely, with Slide as random factor
+for (i in regions) {
+    for (j in c('CFC', 'No_CFC')) {
+    test_data <- normed[, ((pData(normed)$Region == i) & (pData(normed)$CFC == j))]
+    contrast_id <- paste('SD--Sleep', i, j, 'random_Slide', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('Sleep', 'Scan_ID', 'between_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$Sleep == 'SD'])
+    group2_num <- ncol(test_data[,pData(test_data)$Sleep == 'Sleep'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}}
+
+# DG_inf vs DG_sup in Sleep and SD separately, in CFC and No_CFC separately, with Slide as random factor (random slope)
+for (i in c('Sleep','SD')) {
+    for (j in c('CFC', 'No_CFC')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')) & (pData(normed)$CFC == j))]
+    contrast_id <- paste('DG_inf--DG_sup', i, j, 'random_Slide', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('Region', 'Scan_ID', 'within_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$Region == 'DG_inf'])
+    group2_num <- ncol(test_data[,pData(test_data)$Region == 'DG_sup'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}}
+
+
+# DG_inf vs DG_sup in Sleep and SD separately, in CFC and No_CFC separately, with Slide as random factor (random intercept)
+for (i in c('Sleep','SD')) {
+    for (j in c('CFC', 'No_CFC')) {
+    test_data <- normed[, ((pData(normed)$Sleep == i) & (pData(normed)$Region %in% c('DG_inf','DG_sup')) & (pData(normed)$CFC == j))]
+    contrast_id <- paste('DG_inf--DG_sup', i, j, 'random_Slide_intercept', sep=':')
+    formula_strings_ <- paste(as.character(FORMULA_STRING('Region', 'Scan_ID', 'between_slides')), collapse='')
+    group1_num <- ncol(test_data[,pData(test_data)$Region == 'DG_inf'])
+    group2_num <- ncol(test_data[,pData(test_data)$Region == 'DG_sup'])
+    call_res <- rbind(call_res, c(contrast_id, group1_num, group2_num, nrow(de_res[[contrast_id]] %>% filter(DE == "YES")), formula_strings_))}}
+
+call_res <- call_res[-1,]
+colnames(call_res) <- c('comparison', 'group1_ROI_count', 'group2_ROI_count', 'DE_count', 'model')
+write.table(call_res, paste0(Path_DE, 'DE_summary.txt'), quote=F, sep='\t',row.names=F,col.names=T)
+
+
+save.image(paste0(Path_Robjs, 'QC.Rdata')) ## save session
+```
+
+
+## Volcano plots
+
+```{r de_volcano, include = F}
+# Volcano plot function
+deg_volcano = function(deg, plot_title, fdrcutoff, fccutoff)
+{
+fdrcutoff <- as.numeric(fdrcutoff) # e.g. 0.05
+fccutoff <- as.numeric(fccutoff) # e.g. 1.1
+
+colnames(deg) <- gsub('Pr...t..', 'Pvalue', gsub('Estimate', 'log2FC', colnames(deg)))
+
+deg <- deg %>% mutate(
+    minusLog10_Pvalue = -log10(Pvalue),
+    volcano_DE = case_when(((FDR < fdrcutoff) & (log2FC > log2(fccutoff))) ~ 'Up', ((FDR < fdrcutoff) & (log2FC < -log2(fccutoff))) ~ 'Down', TRUE ~ 'NO'))
+
+deg_de <- deg %>% filter(volcano_DE != "NO")
+
+if (nrow(deg_de) == 0) {deg_de <- deg[deg$Pvalue < 0.05,]}
+deg_show <- unique(rbind(deg_de[order(deg_de$log2FC),][1:min(10,nrow(deg_de)),], deg_de[order(-deg_de$log2FC),][1:min(10,nrow(deg_de)),]))
+
+deg$volcano_DE <- factor(deg$volcano_DE, levels = c("NO","Up","Down"))
+
+if (fccutoff > 1) {
+deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+geom_point(alpha=0.5, show.legend = F) + 
+scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+theme_bw() + 
+theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+ggtitle(as.character(plot_title)) + 
+xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+geom_vline(xintercept = c(-log2(fccutoff),log2(fccutoff)), linetype='dashed', color='darkgray') +
+geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+#geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+#geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+theme(legend.position = "right") +
+# scale_x_continuous(breaks=c(-1,-log2(fccutoff),0,log2(fccutoff),1), labels=c('-log2(2)', paste0('-log2(',fccutoff,')'), 0, paste0('log2(',fccutoff,')'), 'log2(2)')) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))} else {
+
+deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+geom_point(alpha=0.5, show.legend = F) + 
+scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+theme_bw() + 
+theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+ggtitle(as.character(plot_title)) + 
+xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+#geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+#geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+theme(legend.position = "right") +
+# scale_x_continuous(breaks=c(-1,0,1), labels=c('-log2(2)', 0, 'log2(2)')) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# ggsave(paste0(dir_plots, plot_title, '.pdf'), deg_vol, width=10, height=8)
+# ggsave(paste0(dir_plots, plot_title, '.png'), deg_vol, width=10, height=8, dpi=300)
+
+return(deg_vol)
+}
+
+# volcano plot for allseg DE
+
+# volcano <- deg_volcano(de_res[['DG_inf--DG_sup:SD:No_CFC:random_Slide_intercept']], 'DG_inf--DG_sup:SD:No_CFC:random_Slide_intercept', 0.1, 1)
+# 
+# ggsave(paste0(Path_plots, 'DEG_volcano_DG_inf--DG_sup:SD:No_CFC:random_Slide_intercept.pdf'), volcano, width=10, height=8)
+# ggsave(paste0(Path_plots, 'DEG_volcano_DG_inf--DG_sup:SD:No_CFC:random_Slide_intercept.png'), volcano, width=10, height=8, dpi=300)
+
+```
+
+Test first function - write out to subfolder in DE results
+```{r}
+Path_plotsDE <- paste0("../Deliverables/DE-",norm_method,"/volcano_plots/")
+dir.create(Path_plotsDE)
+
+for (i in names(de_res)) {
+  #print(i)
+  volcano <- deg_volcano(de_res[[i]], i, 0.1, 1)
+  #print(volcano)
+  ggsave(paste0(Path_plotsDE, 'DEG_volcano_', i, '.pdf'), volcano, width=10, height=8)
+  ggsave(paste0(Path_plotsDE, 'DEG_volcano_', i, '.png'), volcano, width=10, height=8, dpi=300)
+
+}
+
+#save.image(paste0(Path_Robjs, 'QC.Rdata')) ## save session - STOPPING POINT
+
+```
+
+
+```{r more_volcano, include = F}
+
+# # volcano plot with added genes
+# deg_volcano_addedgenes = function(deg, plot_title, fdrcutoff, fccutoff, genes_show, dir_plots)
+# {
+# fdrcutoff <- as.numeric(fdrcutoff) # e.g. 0.05
+# fccutoff <- as.numeric(fccutoff) # e.g. 1.1
+# genes_show <- strsplit(genes_show, ';')[[1]]
+# 
+# colnames(deg) <- gsub('Pr...t..', 'Pvalue', gsub('Estimate', 'log2FC', colnames(deg)))
+# 
+# deg <- deg %>% mutate(
+#     minusLog10_Pvalue = -log10(Pvalue),
+#     volcano_DE = case_when(((FDR < fdrcutoff) & (log2FC > log2(fccutoff))) ~ 'Up', ((FDR < fdrcutoff) & (log2FC < -log2(fccutoff))) ~ 'Down', TRUE ~ 'NO'))
+# 
+# deg_de <- deg %>% filter(volcano_DE != "NO")
+# 
+# if (nrow(deg_de) == 0) {deg_de <- deg[deg$Pvalue < 0.05,]}
+# 
+# deg_show <- unique(rbind(deg_de[order(deg_de$log2FC),][1:min(10,nrow(deg_de)),], deg_de[order(-deg_de$log2FC),][1:min(10,nrow(deg_de)),], deg[deg$Gene %in% genes_show,]))
+# 
+# deg$volcano_DE <- factor(deg$volcano_DE, levels = c("NO","Up","Down"))
+# 
+# if (fccutoff > 1) {
+# deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+# geom_point(alpha=0.5, show.legend = F) + 
+# scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+# theme_bw() + 
+# theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+# ggtitle(as.character(plot_title)) + 
+# xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+# geom_vline(xintercept = c(-log2(fccutoff),log2(fccutoff)), linetype='dashed', color='darkgray') +
+# geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+# #geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+# scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+# #geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+# #geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+# #geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+# geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+# theme(legend.position = "right") +
+# scale_x_continuous(breaks=c(-1,-log2(fccutoff),0,log2(fccutoff),1), labels=c('-log2(2)', paste0('-log2(',fccutoff,')'), 0, paste0('log2(',fccutoff,')'), 'log2(2)')) + theme(axis.text.x = element_text(angle = 45, hjust = 1))} else {
+# 
+# deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+# geom_point(alpha=0.5, show.legend = F) + 
+# scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+# theme_bw() + 
+# theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+# ggtitle(as.character(plot_title)) + 
+# xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+# geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+# #geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+# scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+# #geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+# #geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+# #geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+# geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+# theme(legend.position = "right") +
+# scale_x_continuous(breaks=c(-1,0,1), labels=c('-log2(2)',0, 'log2(2)')) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# }
+# 
+# ggsave(paste0(dir_plots, plot_title, '.pdf'), deg_vol, width=10, height=8)
+# ggsave(paste0(dir_plots, plot_title, '.png'), deg_vol, width=10, height=8, dpi=300)
+# 
+# return(deg_vol)
+# }
+
+```
+
+```{r}
+
+# # plotting
+# fns <- list.files(path = paste0(Path_input, '/p0.1SlideModel_DE/'), pattern=".csv")
+# fns_addedgenes <- c('DEG_SD_vs_Sleep_covCFC_DG_sup_plusSlide_p0.1Only','DEG_SD_vs_Sleep_covCFC_DG_inf_plusSlide_p0.1Only')
+# 
+# data_for_volcano <- lapply(fns, function(x) {return(read.csv(paste(Path_input, 'p0.1SlideModel_DE', x, sep='/')))})
+# names(data_for_volcano) <- gsub('.csv$', '', fns)
+# 
+# for (i in names(data_for_volcano)) {
+#     if (nrow(data_for_volcano[[i]] %>% filter(DE_0.1 == 'YES')) > 0 & (! i %in% fns_addedgenes)) {
+#     deg_volcano(data_for_volcano[[i]], i, 0.1, 1, Path_plots)
+#     }
+# }
+# 
+# deg_volcano_addedgenes(data_for_volcano[['DEG_DGinf_vs_DGsup_Sleep_covCFC_SD_plusSlide_p0.1Only']], 'DEG_DGinf_vs_DGsup_Sleep_covCFC_SD_plusSlide_p0.1Only', 0.1, 1, 'Fos;Arc' ,Path_plots)
+# 
+# deg_volcano_addedgenes(data_for_volcano[['DEG_SD_vs_Sleep_covCFC_DG_sup_plusSlide_p0.1Only']], 'DEG_SD_vs_Sleep_covCFC_DG_sup_plusSlide_p0.1Only', 0.1, 1, 'Fos' ,Path_plots)
+# 
+# deg_volcano_addedgenes(data_for_volcano[['DEG_SD_vs_Sleep_covCFC_DG_inf_plusSlide_p0.1Only']], 'DEG_SD_vs_Sleep_covCFC_DG_inf_plusSlide_p0.1Only', 0.1, 1, 'Fos;Arc' ,Path_plots)
+```
+
+
+```{r}
+#save.image(paste0(Path_Robjs, 'QC.Rdata')) ## save session
+```
+
+
+## Compute Environment
+
+```{r}
+sessionInfo()
+```
