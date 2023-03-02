@@ -1,0 +1,819 @@
+---
+title: "Gene expression changes post sleep deprivation and fear in mouse brain cells (resequenced)"
+author: "ID: Aton_CU8-GeoMx-resequenced<br>Bioinformatics Core Analyst: Weisheng Wu (weishwu@umich.edu)<br/>Investigator: Lijing Wang (lijingw@umich.edu)<br/>Lab PI: Sara Aton (saton@umich.edu)<br/>"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        theme: united
+        toc: true
+        toc_depth: 4
+        toc_float: true
+        number_sections: true
+        fig_caption: true
+        keep_md: false
+---
+
+<style>
+    body .main-container {
+        max-width: 1200px;
+        font-size: 12pt;
+    }
+    /* Headers */
+h1,h2,h3,h4,h5,h6{
+  font-size: 16pt;
+  font-weight: bold;
+}
+</style>
+
+```{css echo=FALSE}
+.author {color: black; font-size: 12pt }
+.title {color: black; font-size: 12pt }
+```
+
+```{r load_data, include=T}
+enviroment <- "docker run --rm -p 8787:8787 -e USERID=$UID -e PASSWORD=111 -v /nfs/mm-isilon/bioinfcore/ActiveProjects/Aton_saton_CU8-GeoMx_weishwu_damki_4207-LW-followup/:/home/$USER/foo weishwu/geomx:02232022"
+
+# if not installed, need to install GeomxTools
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("GeomxTools")
+
+##### Project setup #####
+
+library(knitr)
+library(dplyr)
+library(ggforce)
+library(ggplot2)
+library(scales)
+library(readxl)
+library(xlsx)
+library(gridExtra)
+library(grid)
+library(reshape2)
+library(cowplot)
+library(umap)
+library(Rtsne)
+library(ggrepel)
+library(randomcoloR)
+library(RColorBrewer)
+library(pheatmap)
+library(GeomxTools)
+library(EnvStats)
+library(ggiraph)
+library(crayon)
+
+##### Project setup end #####
+
+## initial project subdirectories created as part of project setup instead of in-line code
+
+Path_project <- "/home/weishwu/foo/"
+Path_outputs <- paste0(Path_project, "outputs/resequenced//outputs/")
+Path_DE <- paste0(Path_outputs, "DE/")
+Path_plots <- paste0(Path_outputs, "plots/")
+Path_input <- paste0(Path_project, "inputs/dcc/")
+
+dir.create(Path_DE)
+dir.create(Path_plots)
+setwd(Path_outputs)
+
+DCCFiles <- dir(file.path(paste0(Path_input, "nanoString_results_4207-LW_resequenced/")), pattern = ".dcc$",full.names = TRUE, recursive = TRUE)
+PKCFiles <- paste0(Path_input, "Mm_R_NGS_WTA_v1.0.pkc")
+SampleAnnotationFile <- paste0(Path_input, 'full_annotation.xlsx')
+```
+
+```{r data_initialize, include=T}
+# create data object
+rawData <-
+     readNanoStringGeoMxSet(
+         dccFiles = DCCFiles,
+         pkcFiles = PKCFiles,
+         phenoDataFile = SampleAnnotationFile,
+         phenoDataSheet = "full_annotation",
+         phenoDataDccColName = "Sample_ID",
+         protocolDataColNames = c("aoi", "roi"),
+         experimentDataColNames = c("panel"))
+
+pkcs <- annotation(rawData)
+modules <- gsub(".pkc", "", pkcs)
+kable(data.frame(PKCs = pkcs, modules = modules))
+
+# Shift counts to one
+shiftData <- shiftCountsOne(rawData, useDALogic = TRUE)
+```
+
+
+```{r segment_qc, include=T}
+# Segment QC
+
+## Unclear how much to deviate from annnotated numbers here for some of the thresholds
+QC_params <-
+    list(minSegmentReads = 1000, # Minimum number of reads (1000 recommended)
+         percentTrimmed = 80,    # Minimum % of reads trimmed (80% recommended)
+         percentStitched = 80,   # Minimum % of reads stitched (80% recommended)
+         percentAligned = 80,    # Minimum % of reads aligned (80% recommended)
+         percentSaturation = 50, # Minimum sequencing saturation (50% recommended)
+         minNegativeCount = 10,   # Minimum negative control counts (10); minimum of 10 needed for normalization
+         maxNTCCount = 1000,     # Maximum counts observed in NTC well (1000 recommended)
+         minArea = 5000,         # Minimum segment area (5000 recommended)
+         minNuclei = 100)         # Minimum # of nuclei estimated (100 recommended))
+
+
+segmentQCdata <-
+    setSegmentQCFlags(shiftData,
+                      qcCutoffs = QC_params)
+
+QCResults <- protocolData(segmentQCdata)[["QCFlags"]]
+flag_columns <- colnames(QCResults)
+QC_Summary <- data.frame(Pass = colSums(!QCResults[, flag_columns]),
+                         Warning = colSums(QCResults[, flag_columns]))
+QCResults$QCStatus <- apply(QCResults, 1L, function(x) {
+    ifelse(sum(x) == 0L, "PASS", "WARNING")
+})
+
+
+
+QC_Summary["TOTAL FLAGS", ] <-
+    c(sum(QCResults[, "QCStatus"] == "PASS"),
+      sum(QCResults[, "QCStatus"] == "WARNING"))
+
+QC_Summary
+
+```
+
+```{r negative_geomean, include=T}
+# calculate negative geomean
+# calculate the negative geometric means for each module
+negativeGeoMeans <-
+    esBy(negativeControlSubset(segmentQCdata),
+         GROUP = "Module",
+         FUN = function(x) {
+             assayDataApply(x, MARGIN = 2, FUN = ngeoMean, elt = "exprs")
+         })
+protocolData(segmentQCdata)[["NegGeoMean"]] <- negativeGeoMeans
+
+# explicitly copy the Negative geoMeans from sData to pData
+negCols <- paste0("NegGeoMean_", modules)
+pData(segmentQCdata)[, negCols] <- sData(segmentQCdata)[["NegGeoMean"]]
+
+# Graphical summaries of QC statistics plot function
+QC_histogram <- function(assay_data = NULL,
+                         annotation = NULL,
+                         fill_by = NULL,
+                         thr = NULL,
+                         scale_trans = NULL) {
+    plt <- ggplot(assay_data,
+                  aes_string(x = paste0("unlist(`", annotation, "`)"),
+                             fill = fill_by)) +
+        geom_histogram(bins = 50) +
+        geom_vline(xintercept = thr, lty = "dashed", color = "black") +
+        theme_bw() + guides(fill = "none") +
+        facet_wrap(as.formula(paste("~", fill_by)), nrow = 4) +
+        labs(x = annotation, y = "ROIs, #", title = annotation)
+    if(!is.null(scale_trans)) {
+        plt <- plt +
+            scale_x_continuous(trans = scale_trans)
+    }
+    plt
+}
+
+## modify col_by to relate to column in data
+colnames(pData(segmentQCdata))
+col_by <- "Scan_ID"
+
+# generate plots
+for(ann in negCols) {
+    plt <- QC_histogram(pData(segmentQCdata), ann, col_by, 2, scale_trans = "log10")
+    print(plt)}
+ggsave(paste0(Path_plots,'NegGeoMean_histogram.pdf'), plt, width=8, height=5)
+ggsave(paste0(Path_plots, 'NegGeoMean_histogram.png'), plt, width=8, height=5, dpi=300, bg="white")
+
+
+# look for any AOIs with NegGeoMan < 2
+pData(segmentQCdata)[which(pData(segmentQCdata)$NegGeoMean_Hs_R_NGS_WTA_v1.0 < 2), ]
+```
+
+
+
+```{r add_q3, include=T}
+# add q3
+pData(segmentQCdata)[, 'q3'] <- apply(segmentQCdata@assayData$exprs[segmentQCdata@featureData@data$Negative == FALSE,], 2, function(x){quantile(x,probs=0.75)})
+```
+
+```{r qc_plots_q3_vs_neg_std, include=T}
+## replace NegGeoMean label to match organism/expected value in table
+## include or exclude area as part of QC labels
+
+# plot negGeomean vs q3
+pData(segmentQCdata)$Mouse <- as.factor(pData(segmentQCdata)$Mouse)
+
+neg_q3_slide <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3, fill=`slide name`)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3') + theme_bw() + geom_abline(slope=1, intercept = 0, lty = "dashed", color = "darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+
+neg_q3_mouse <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3, fill=Mouse)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3') + theme_bw() + geom_abline(slope=1, intercept = 0, lty = "dashed", color = "darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+neg_q3_sleep <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3, fill=Sleep)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3') + theme_bw() + geom_abline(slope=1, intercept = 0, lty = "dashed", color = "darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+neg_q3_cfc <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3, fill=CFC)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3') + theme_bw() + geom_abline(slope=1, intercept = 0, lty = "dashed", color = "darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+neg_q3_region <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3, fill=Region)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3') + theme_bw() + geom_abline(slope=1, intercept = 0, lty = "dashed", color = "darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+neg_q3_position <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3, fill=`Position(Repetition)`)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3') + theme_bw() + geom_abline(slope=1, intercept = 0, lty = "dashed", color = "darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+
+# plot q3/negGeomean vs negGeomean
+q3overNeg_slide <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3/NegGeoMean_Mm_R_NGS_WTA_v1.0, fill=`slide name`)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3/NegGeomean') + theme_bw() + geom_hline(yintercept=c(1,2), alpha=1, linetype='dashed', size=1, color="darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+q3overNeg_sleep <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3/NegGeoMean_Mm_R_NGS_WTA_v1.0, fill=Sleep)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3/NegGeomean') + theme_bw() + geom_hline(yintercept=c(1,2), alpha=1, linetype='dashed', size=1, color="darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+q3overNeg_mouse <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3/NegGeoMean_Mm_R_NGS_WTA_v1.0, fill=Mouse)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3/NegGeomean') + theme_bw() + geom_hline(yintercept=c(1,2), alpha=1, linetype='dashed', size=1, color="darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+q3overNeg_cfc <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3/NegGeoMean_Mm_R_NGS_WTA_v1.0, fill=CFC)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3/NegGeomean') + theme_bw() + geom_hline(yintercept=c(1,2), alpha=1, linetype='dashed', size=1, color="darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+q3overNeg_region <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3/NegGeoMean_Mm_R_NGS_WTA_v1.0, fill=Region)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3/NegGeomean') + theme_bw() + geom_hline(yintercept=c(1,2), alpha=1, linetype='dashed', size=1, color="darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+q3overNeg_position <- ggplot(pData(segmentQCdata), aes(x=NegGeoMean_Mm_R_NGS_WTA_v1.0, y=q3/NegGeoMean_Mm_R_NGS_WTA_v1.0, fill=`Position(Repetition)`)) + geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + xlab('NegGeomean') + ylab('Q3/NegGeomean') + theme_bw() + geom_hline(yintercept=c(1,2), alpha=1, linetype='dashed', size=1, color="darkgray") + scale_x_continuous(trans = "log2") + scale_y_continuous(trans = "log2")
+
+## output final plot
+#neg_q3_plots <- grid.arrange(neg_q3_slide, neg_q3_tags, neg_q3_mouse, ncol=2)
+neg_q3_plots <- plot_grid(neg_q3_slide, neg_q3_mouse, neg_q3_sleep, neg_q3_cfc, neg_q3_region, neg_q3_position, labels = c('A', 'B', 'C', 'D', 'E', 'F'), ncol=2, label_size = 12, align='hv')
+ggsave(paste0(Path_plots,'negGeomean_vs_Q3.pdf'), neg_q3_plots, width=15, height=15)
+ggsave(paste0(Path_plots,'negGeomean_vs_Q3.png'), neg_q3_plots, width=15, height=15, dpi=300)
+
+
+neg_q3_plots <- plot_grid(q3overNeg_slide, q3overNeg_mouse, q3overNeg_sleep, q3overNeg_cfc, q3overNeg_region, q3overNeg_position, labels = c('A', 'B', 'C', 'D', 'E', 'F'), ncol=2, label_size = 12, align='hv')
+ggsave(paste0(Path_plots,'Q3_over_NegGeomean.pdf'), neg_q3_plots, width=15, height=15)
+ggsave(paste0(Path_plots,'Q3_over_NegGeomean.png'), neg_q3_plots, width=15, height=15, dpi=300)
+
+```
+
+
+```{r probe_qc, include=T}
+# Probe QC
+probeQCdata <- setBioProbeQCFlags(segmentQCdata,
+	qcCutoffs = list(minProbeRatio = 0.1,
+	percentFailGrubbs = 20),
+	removeLocalOutliers = TRUE)
+ProbeQCResults <- fData(probeQCdata)[["QCFlags"]]
+qc_df <- data.frame(Passed = sum(rowSums(ProbeQCResults[, -1]) == 0),
+	Global = sum(ProbeQCResults$GlobalGrubbsOutlier),
+	Local = sum(rowSums(ProbeQCResults[, -2:-1]) > 0
+		& !ProbeQCResults$GlobalGrubbsOutlier))
+
+#Subset object to exclude all that did not pass Ratio & Global testing
+ProbeQCPassed <- subset(probeQCdata,
+	fData(probeQCdata)[["QCFlags"]][,c("LowProbeRatio")] == FALSE & fData(probeQCdata)[["QCFlags"]][,c("GlobalGrubbsOutlier")] == FALSE)
+dim(ProbeQCPassed)
+```
+
+
+```{r collapse_probes, include=T}
+# Create Gene-level Count Data
+# Check how many unique targets the object has
+length(unique(featureData(ProbeQCPassed)[["TargetName"]]))
+
+# collapse to targets
+targetData <- aggregateCounts(ProbeQCPassed)
+dim(targetData)
+```
+
+```{r calculate_LOQ, include=T}
+# calculate LOQ
+# Define LOQ SD threshold and minimum value
+cutoff <- 2
+minLOQ <- 2
+
+# Calculate LOQ per module tested
+LOQ <- data.frame(row.names = colnames(targetData))
+for(module in modules) {
+    vars <- paste0(c("NegGeoMean_", "NegGeoSD_"),
+                   module)
+    if(all(vars[1:2] %in% colnames(pData(targetData)))) {
+        LOQ[, module] <-
+            pmax(minLOQ,
+                 pData(targetData)[, vars[1]] *
+                     pData(targetData)[, vars[2]] ^ cutoff)
+    }
+}
+pData(targetData)$LOQ <- LOQ
+```
+
+```{r gene_detection_perAOI, include=T}
+# determine if a gene is expressed lower than LOQ in each segment
+LOQ_Mat <- c()
+for(module in modules) {
+    ind <- fData(targetData)$Module == module
+    Mat_i <- t(esApply(targetData[ind, ], MARGIN = 1,
+                       FUN = function(x) {
+                           x > LOQ[, module]
+                       }))
+    LOQ_Mat <- rbind(LOQ_Mat, Mat_i)
+}
+# ensure ordering since this is stored outside of the geomxSet
+LOQ_Mat <- LOQ_Mat[fData(targetData)$TargetName, ]
+
+# segment gene detection
+# Save detection rate information to pheno data
+pData(targetData)$GenesDetected <-
+    colSums(LOQ_Mat, na.rm = TRUE)
+pData(targetData)$GeneDetectionRate <-
+    pData(targetData)$GenesDetected / nrow(targetData)
+
+# Determine detection thresholds: 1%, 5%, 10%, 15%, >15%
+pData(targetData)$DetectionThreshold <-
+    cut(pData(targetData)$GeneDetectionRate,
+        breaks = c(0, 0.01, 0.05, 0.1, 0.15, 1),
+        labels = c("<1%", "1-5%", "5-10%", "10-15%", ">15%"))
+
+# stacked bar plot of different cut points (1%, 5%, 10%, 15%)
+segment_gene_detection_bars <- ggplot(pData(targetData),
+       aes(x = DetectionThreshold)) +
+    geom_bar(aes(fill = Scan_ID)) + # modify fill column to match catagory that has largest batches
+    geom_text(stat = "count", aes(label = ..count..), vjust = -0.5) +
+    theme_bw() +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+    labs(x = "Gene Detection Rate",
+         y = "Segments, #",
+         fill = "Segment Type")
+ggsave(paste0(Path_plots,'Gene_detection_rate_in_segments.pdf'), segment_gene_detection_bars, width=8, height=5)
+ggsave(paste0(Path_plots,'Gene_detection_rate_in_segments.png'), segment_gene_detection_bars, width=8, height=5, dpi=300, bg="white")
+
+gene_detection_perSlide_density <- ggplot(pData(targetData), aes(x=GeneDetectionRate, col=Scan_ID)) + geom_density() + theme_bw() + theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
+gene_detection_perRegion_density <- ggplot(pData(targetData), aes(x=GeneDetectionRate, col=Region)) + geom_density() + theme_bw() + theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
+gene_detection_perRegionSlide_box <- ggplot(pData(targetData), aes(x=paste(Region,Scan_ID, sep=':'), y=GeneDetectionRate)) + geom_boxplot() + theme_bw() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + xlab('') + theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
+gene_detection_perSlide_density_Hilus <- ggplot(pData(targetData) %>% filter(Region == 'Hilus'), aes(x=GeneDetectionRate, col=paste(Region,Scan_ID, sep=':'))) + geom_density() + theme_bw() + labs(col='Hilus:Slide')  + theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+gene_detection_density <- plot_grid(gene_detection_perSlide_density, gene_detection_perRegion_density,  gene_detection_perSlide_density_Hilus, gene_detection_perRegionSlide_box, nrow = 2, labels = c("A", "B", "C","D"), align='h')
+
+ggsave(paste0(Path_plots,'Gene_detection_rate_distribution.pdf'), gene_detection_density, width=12, height=8)
+ggsave(paste0(Path_plots,'Gene_detection_rate_distribution.png'), gene_detection_density, width=12, height=8, dpi=300, bg="white")
+
+# violin plot for gene detection rate across segments
+#segment_gene_detection_violin <- ggplot(pData(targetData) %>% select(GeneDetectionRate, tags, Mouse, `scan name`), aes(x=Mouse, y=GeneDetectionRate)) + geom_violin() + geom_hline(yintercept=0.1) + geom_jitter(shape=16, position=position_jitter(0), size=1)
+#ggsave(paste0(Path_plots,'segment_gene_detection_violin.pdf'), segment_gene_detection_violin, width=5, height=5)
+#ggsave(paste0(Path_plots,'segment_gene_detection_violin.png'), segment_gene_detection_violin, width=5, height=5, dpi=300, bg="white")
+```
+
+
+```{r segment_filter, include=T}
+segFilt <- 0.15
+segmentFiltData <- targetData[, pData(targetData)$GeneDetectionRate >= segFilt] # double check filter
+
+## possibly do additional filtering to remove q3<2 segments if not removed with current filtering thresholds
+dim(pData(targetData))
+dim(segmentFiltData)
+dim(segmentFiltData[pData(segmentFiltData)$q3 > 2 , ]) # all segments pass q3 minimum
+```
+
+```{r gene_detection_perGene, include=T}
+# gene detection rate
+# Calculate detection rate:
+LOQ_Mat <- LOQ_Mat[, colnames(segmentFiltData)]
+fData(segmentFiltData)$DetectedSegments <- rowSums(LOQ_Mat, na.rm = TRUE)
+fData(segmentFiltData)$DetectionRate <-
+    fData(segmentFiltData)$DetectedSegments / nrow(pData(segmentFiltData))
+
+# Plot detection rate:
+plot_detect <- data.frame(Freq = c(1, 5, 10, 20, 30, 50))
+plot_detect$Number <-
+    unlist(lapply(c(0.01, 0.05, 0.1, 0.2, 0.3, 0.5),
+                  function(x) {sum(fData(segmentFiltData)$DetectionRate >= x)}))
+plot_detect$Rate <- plot_detect$Number / nrow(fData(segmentFiltData))
+rownames(plot_detect) <- plot_detect$Freq
+
+gene_detection_bars <- ggplot(plot_detect, aes(x = as.factor(Freq), y = Rate, fill = Rate)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = formatC(Number, format = "d", big.mark = ",")),
+              vjust = 1.6, color = "black", size = 4) +
+    scale_fill_gradient2(low = "orange2", mid = "lightblue",
+                         high = "dodgerblue3", midpoint = 0.65,
+                         limits = c(0,1),
+                         labels = scales::percent) +
+    theme_bw() +
+    scale_y_continuous(labels = scales::percent, limits = c(0,1),
+                       expand = expansion(mult = c(0, 0))) +
+    labs(x = "% of Segments",
+         y = "Genes Detected, % of Panel > LOQ")
+
+ggsave(paste0(Path_plots,'gene_detection_rate.pdf'), gene_detection_bars, width=5, height=5)
+ggsave(paste0(Path_plots,'gene_detection_rate.png'), gene_detection_bars, width=5, height=5, dpi=300, bg="white")
+
+# based on plot - higher filtering will lead to more gene loss
+```
+
+```{r target_filter, include=T}
+# Subset to target genes detected in at least 5% of the samples.
+#   Also manually include the negative control probe, for downstream use
+DetectRate <- 0.1
+
+negativeProbefData <- subset(fData(segmentFiltData), CodeClass == "Negative")
+neg_probes <- unique(negativeProbefData$TargetName)
+targetFiltData <-
+    segmentFiltData[fData(segmentFiltData)$DetectionRate >= DetectRate | fData(segmentFiltData)$TargetName %in% neg_probes, ]
+dim(targetFiltData)
+
+
+colnames(pData(targetFiltData))
+```
+
+```{r qc_after_filtering, include=T}
+# Graph Q3 value vs negGeoMean of Negatives
+
+ann_of_interest <- "Scan_ID"
+Stat_data <-
+    data.frame(row.names = colnames(exprs(targetFiltData)),
+               Segment = colnames(exprs(targetFiltData)),
+               Annotation = pData(targetFiltData)[, ann_of_interest],
+               Q3 = unlist(apply(exprs(targetFiltData), 2,
+                                 quantile, 0.75, na.rm = TRUE)),
+               NegProbe = exprs(targetFiltData)[neg_probes, ])
+Stat_data_m <- melt(Stat_data, measure.vars = c("Q3", "NegProbe"),
+                    variable.name = "Statistic", value.name = "Value")
+
+plt1 <- ggplot(Stat_data_m,
+               aes(x = Value, fill = Statistic)) +
+    geom_histogram(bins = 40) + theme_bw() +
+    scale_x_continuous(trans = "log2") +
+    facet_wrap(~Annotation, nrow = 1) +
+    scale_fill_brewer(palette = 3, type = "qual") +
+    labs(x = "Counts", y = "Segments, #")
+
+plt2 <- ggplot(Stat_data,
+               aes(x = NegProbe, y = Q3, fill = Annotation)) +
+    geom_abline(intercept = 0, slope = 1, lty = "dashed", color = "darkgray") +
+    geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + guides(color = "none") + theme_bw() +
+    scale_x_continuous(trans = "log2") +
+    scale_y_continuous(trans = "log2") +
+    theme_bw() +
+    labs(x = "Negative Probe GeoMean, Counts", y = "Q3 Value, Counts")
+
+plt3 <- ggplot(Stat_data,
+               aes(x = NegProbe, y = Q3 / NegProbe, fill = Annotation)) +
+    geom_hline(yintercept = 1, lty = "dashed", color = "darkgray") +
+    geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + theme_bw() +
+    scale_x_continuous(trans = "log2") +
+    scale_y_continuous(trans = "log2") +
+    theme_bw() +
+    labs(x = "Negative Probe GeoMean, Counts", y = "Q3/NegProbe Value, Counts")
+
+btm_row <- plot_grid(plt2, plt3, nrow = 1, labels = c("B", ""), align='h')
+q3_neg_afterFilter <- plot_grid(plt1, btm_row, ncol = 1, labels = c("A", ""))
+ggsave(paste0(Path_plots, 'q3_neg_afterFilter.pdf'), q3_neg_afterFilter, width=9, height=6)
+ggsave(paste0(Path_plots, 'q3_neg_afterFilter.png'), q3_neg_afterFilter, width=9, height=6, dpi=300, bg="white")
+
+```
+
+
+```{r normalization, include=T}
+# Q3 norm (75th percentile) for WTA/CTA  with or without custom spike-ins
+q3norm <- normalize(targetFiltData , data_type = "RNA", norm_method = "quant", desiredQuantile = 0.75, fromElt = "exprs", toElt = "q_norm")
+
+# Background normalization for WTA/CTA without custom spike-in
+normed <- normalize(q3norm , data_type = "RNA", norm_method = "neg", fromElt = "exprs", toElt = "neg_norm")
+
+# log2 transform the normalized data
+assayDataElement(object = normed, elt = "log_q") <-
+    assayDataApply(normed, 2, FUN = log, base = 2, elt = "q_norm")
+```
+
+
+```{r save_data, include=T}
+
+saveRDS(rawData, paste0(Path_outputs,'rawData.rds'))
+saveRDS(targetData, paste0(Path_outputs,'targetData.rds'))
+saveRDS(segmentFiltData, paste0(Path_outputs,'segmentFiltData.rds'))
+saveRDS(targetFiltData, paste0(Path_outputs,'targetFiltData.rds'))
+saveRDS(normed, paste0(Path_outputs,'normalized.rds'))
+
+LOQ_Mat_selected <- LOQ_Mat[rownames(normed),colnames(normed)]
+q3_norm_table <- normed@assayData$q_norm
+colnames(q3_norm_table) <- paste('Q3norm', pData(normed)$`scan name`, normed@protocolData@data$roi, pData(normed)$Mouse, pData(normed)$tags, sep=' | ')
+colnames(LOQ_Mat_selected) <- paste('Above_LOQ', pData(normed)$`scan name`, normed@protocolData@data$roi, pData(normed)$Mouse, pData(normed)$tags, sep=' | ')
+q3_norm_table <- cbind(q3_norm_table, LOQ_Mat_selected)
+write.csv(q3_norm_table, 'filtered_q3norm.csv')
+
+logq3_norm_table <- normed@assayData$log_q
+colnames(logq3_norm_table) <- paste('log2Q3norm', pData(normed)$`scan name`, normed@protocolData@data$roi, pData(normed)$Mouse, pData(normed)$tags, sep=' | ')
+colnames(LOQ_Mat_selected) <- paste('Above_LOQ', pData(normed)$`scan name`, normed@protocolData@data$roi, pData(normed)$Mouse, pData(normed)$tags, sep=' | ')
+logq3_norm_table <- cbind(logq3_norm_table, LOQ_Mat_selected)
+write.csv(logq3_norm_table, 'filtered_log2q3norm.csv')
+
+write.csv(as.matrix(pData(targetData) %>% arrange(GeneDetectionRate, desc=F)), paste0(Path_outputs, 'QC_data.csv'))
+write.csv(exprs(targetFiltData), paste0(Path_outputs, 'filtered_rawcounts.csv'))
+
+```
+
+
+```{r pca_all_segs, include=T}
+# PCA
+norm_counts_scaled <- t(scale(t(normed@assayData$log_q), center=T, scale=T))
+pca <- prcomp(t(norm_counts_scaled))
+pov <- summary(pca)$importance['Proportion of Variance',]
+
+pData(normed)[, c("PC1", "PC2", "PC3")] <- pca$x[,1:3]
+
+pca_slide <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Scan_ID)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_sleep <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Sleep)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_mouse <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Mouse)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_sleep <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Sleep)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_cfc <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = CFC)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_region <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = Region)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+pca_position <- ggplot(pData(normed), aes(x = PC1, y = PC2, fill = `Position(Repetition)`)) +
+geom_point(shape = 21, color = 'black', alpha=0.8, size=2.5) + 
+theme_bw() + 
+xlab(paste0('PC1 PoV=', 100*round(pov['PC1'], 3), '%')) + 
+ylab(paste0('PC2 PoV=', 100*round(pov['PC2'], 3), '%'))
+
+# output plots
+pca_allsegs_plots <- plot_grid(pca_slide, pca_mouse, pca_sleep, pca_cfc, pca_region, pca_position, ncol=3, align='hv')
+ggsave(paste0(Path_plots, 'PCA_allsegs.pdf'), pca_allsegs_plots, width=21, height=9)
+ggsave(paste0(Path_plots, 'PCA_allsegs.png'), pca_allsegs_plots, width=21, height=9, dpi=300, bg="white")
+
+```
+
+```{r heatmap_topvargenes, include=T}
+calc_CV <- function(x) {sd(x) / mean(x)}
+CV_dat <- assayDataApply(normed,
+                         elt = "log_q", MARGIN = 1, calc_CV)
+# show the highest CD genes and their CV values
+topCDgenes <- sort(CV_dat, decreasing = TRUE)[1:10]
+
+
+# Identify genes in the top 3rd of the CV values
+GOI <- names(CV_dat)[CV_dat > quantile(CV_dat, 0.75)]
+
+ph_data <- assayDataElement(normed[GOI, ], elt = "log_q")
+colnames(ph_data) <- gsub('-GeoMx1', '', paste(pData(normed)$`slide name`, normed@protocolData@data$roi, sep=' | '))
+ph_anno <- data.frame(pData(normed) %>% select(Scan_ID, Mouse, Sleep, CFC, Region, `Position(Repetition)`))
+row.names(ph_anno) <- gsub('-GeoMx1', '', paste(pData(normed)$`slide name`, normed@protocolData@data$roi, sep=' | '))
+
+topCV <- pheatmap(ph_data,
+         scale = "row", 
+         show_rownames = FALSE, show_colnames = FALSE,
+         border_color = NA,
+         clustering_method = "ward.D2",
+         breaks = seq(-3, 3, 0.05),
+         color = colorRampPalette(rev(brewer.pal(n = 7, name = "RdYlBu")))(120), # modified color scale
+         annotation_col = ph_anno)
+
+ggsave(paste0(Path_plots, 'heatmap_topCV.pdf'), topCV, width=10, height=12, limit=F)
+ggsave(paste0(Path_plots, 'heatmap_topCV.png'), topCV, width=10, height=12, limit=F, dpi=300, bg="white")
+
+```
+
+```{r lmm_de, include=F}
+# test function
+lmm_de <- function(test_set, test_tag, contrast_name, random_factors, fdrcutoff, fccuotff) {
+
+group1 <- as.character(strsplit(strsplit(contrast_name, ':')[[1]][2], '--')[[1]][1])
+group2 <- as.character(strsplit(strsplit(contrast_name, ':')[[1]][2], '--')[[1]][2])
+
+pData(test_set)[,as.character(test_tag)] <- factor(pData(test_set)[,as.character(test_tag)], levels = c(group1, group2))
+
+formula_string <- function(test_tag, random_factors) {
+    if (grepl('\\++', as.character(random_factors))) {
+        random_factor_1 <- strsplit(random_factors, '\\++')[[1]][1]
+        random_factor_2 <- strsplit(random_factors, '\\++')[[1]][2]
+        return(as.formula(paste('~', test_tag, '+ (1 | ', random_factor_1, ')', '+ (1 | ', random_factor_2, ')', sep=' ')))} else {
+        return(as.formula(paste('~', test_tag, '+ (1 | ', random_factor, ')', sep=' ')))
+    }
+}
+
+mixedOutmc <- mixedModelDE(
+    test_set,
+    elt = "log_q",
+    modelFormula = formula_string(test_tag, random_factors),
+    groupVar = as.character(test_tag),
+    nCores = 10,
+    multiCore = FALSE)
+
+r_test <- do.call(rbind, mixedOutmc["lsmeans", ])
+r_test <- as.data.frame(r_test)
+r_test$Contrast <- contrast_name
+r_test$Random <- as.character(random_factor)
+
+r_test$Gene <- 
+        unlist(lapply(colnames(mixedOutmc),
+                      rep, nrow(mixedOutmc["lsmeans", ][[1]])))
+
+r_test$FDR <- p.adjust(r_test$`Pr(>|t|)`, method = "fdr")
+r_test <- r_test[, c("Gene", "Contrast", "Random", "Estimate", "Pr(>|t|)", "FDR")]
+colnames(r_test) <- c("Gene", "Contrast", "Random", "log2FC", "Pvalue", "FDR")
+r_test <- r_test %>% mutate(DE = case_when(((FDR < as.numeric(fdrcutoff)) & (abs(log2FC) > log2(as.numeric(fccutoff)))) ~ 'YES', TRUE ~ 'NO')) %>% arrange(FDR, desc(abs(log2FC)))
+return(r_test)
+}
+
+# run tests
+de_testset_sleep <- normed[, pData(normed)$Sleep == 'Sleep']
+de_testset_sd <- normed[, pData(normed)$Sleep == 'SD']
+regions <- unique(pData(normed)$Region)
+
+de_res <- list()
+
+for (i in regions) {
+    test_data_sleep <- de_testset_sleep[, pData(de_testset_sleep)$Region == i]
+    contrast_id_sleep <- paste0('Sleep_', i, ':CFC--No_CFC')
+
+    test_data_sd <- de_testset_sd[, pData(de_testset_sd)$Region == i]
+    contrast_id_sd <- paste0('SD_', i, ':CFC--No_CFC')
+
+    de_res[[contrast_id_sleep]] <- lmm_de(test_data_sleep, 'CFC', contrast_id_sleep, 'Slide', 0.1, 1)
+    de_res[[contrast_id_sd]] <- lmm_de(test_data_sd, 'CFC', contrast_id_sd, 'Slide', 0.1, 1)
+}
+
+for (i in names(de_res)) {
+write.table(de_res[[i]], gsub(':', '-', paste0(Path_DE, 'DEG_', i, '.txt')), row.names=F, col.names=T, quote=F, sep='\t')}
+
+```
+
+```{r de_volcano, include = F}
+# Volcano plot function
+deg_volcano = function(deg, plot_title, fdrcutoff, fccutoff, dir_plots)
+{
+fdrcutoff <- as.numeric(fdrcutoff) # e.g. 0.05
+fccutoff <- as.numeric(fccutoff) # e.g. 1.1
+
+colnames(deg) <- gsub('Pr...t..', 'Pvalue', gsub('Estimate', 'log2FC', colnames(deg)))
+
+deg <- deg %>% mutate(
+    minusLog10_Pvalue = -log10(Pvalue),
+    volcano_DE = case_when(((FDR < fdrcutoff) & (log2FC > log2(fccutoff))) ~ 'Up', ((FDR < fdrcutoff) & (log2FC < -log2(fccutoff))) ~ 'Down', TRUE ~ 'NO'))
+
+deg_de <- deg %>% filter(volcano_DE != "NO")
+
+if (nrow(deg_de) == 0) {deg_de <- deg[deg$Pvalue < 0.05,]}
+deg_show <- unique(rbind(deg_de[order(deg_de$log2FC),][1:min(10,nrow(deg_de)),], deg_de[order(-deg_de$log2FC),][1:min(10,nrow(deg_de)),]))
+
+deg$volcano_DE <- factor(deg$volcano_DE, levels = c("NO","Up","Down"))
+
+if (fccutoff > 1) {
+deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+geom_point(alpha=0.5, show.legend = F) + 
+scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+theme_bw() + 
+theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+ggtitle(as.character(plot_title)) + 
+xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+geom_vline(xintercept = c(-log2(fccutoff),log2(fccutoff)), linetype='dashed', color='darkgray') +
+geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+#geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+#geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+theme(legend.position = "right") +
+scale_x_continuous(breaks=c(-1,-log2(fccutoff),0,log2(fccutoff),1), labels=c('-log2(2)', paste0('-log2(',fccutoff,')'), 0, paste0('log2(',fccutoff,')'), 'log2(2)')) + theme(axis.text.x = element_text(angle = 45, hjust = 1))} else {
+
+deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+geom_point(alpha=0.5, show.legend = F) + 
+scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+theme_bw() + 
+theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+ggtitle(as.character(plot_title)) + 
+xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+#geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+#geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+theme(legend.position = "right") +
+scale_x_continuous(breaks=c(-1,0,1), labels=c('-log2(2)', 0, 'log2(2)')) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+ggsave(paste0(dir_plots, plot_title, '.pdf'), deg_vol, width=10, height=8)
+ggsave(paste0(dir_plots, plot_title, '.png'), deg_vol, width=10, height=8, dpi=300)
+
+return(deg_vol)
+}
+
+# volcano plot for allseg DE
+
+volcano <- deg_volcano(de_res[['SD_Hilus:CFC--No_CFC']], 'SD-Hilus:CFC--No_CFC', 0.1, 1)
+
+ggsave(paste0(Path_plots, 'DEG_volcano_SD-Hilus_CFC--No_CFC.pdf'), volcano, width=10, height=8)
+ggsave(paste0(Path_plots, 'DEG_volcano_SD-Hilus_CFC--No_CFC.png'), volcano, width=10, height=8, dpi=300)
+
+```
+
+```{r more_volcano, include = F}
+
+# volcano plot with added genes
+deg_volcano_addedgenes = function(deg, plot_title, fdrcutoff, fccutoff, genes_show, dir_plots)
+{
+fdrcutoff <- as.numeric(fdrcutoff) # e.g. 0.05
+fccutoff <- as.numeric(fccutoff) # e.g. 1.1
+genes_show <- strsplit(genes_show, ';')[[1]]
+
+colnames(deg) <- gsub('Pr...t..', 'Pvalue', gsub('Estimate', 'log2FC', colnames(deg)))
+
+deg <- deg %>% mutate(
+    minusLog10_Pvalue = -log10(Pvalue),
+    volcano_DE = case_when(((FDR < fdrcutoff) & (log2FC > log2(fccutoff))) ~ 'Up', ((FDR < fdrcutoff) & (log2FC < -log2(fccutoff))) ~ 'Down', TRUE ~ 'NO'))
+
+deg_de <- deg %>% filter(volcano_DE != "NO")
+
+if (nrow(deg_de) == 0) {deg_de <- deg[deg$Pvalue < 0.05,]}
+
+deg_show <- unique(rbind(deg_de[order(deg_de$log2FC),][1:min(10,nrow(deg_de)),], deg_de[order(-deg_de$log2FC),][1:min(10,nrow(deg_de)),], deg[deg$Gene %in% genes_show,]))
+
+deg$volcano_DE <- factor(deg$volcano_DE, levels = c("NO","Up","Down"))
+
+if (fccutoff > 1) {
+deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+geom_point(alpha=0.5, show.legend = F) + 
+scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+theme_bw() + 
+theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+ggtitle(as.character(plot_title)) + 
+xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+geom_vline(xintercept = c(-log2(fccutoff),log2(fccutoff)), linetype='dashed', color='darkgray') +
+geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+#geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+#geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+theme(legend.position = "right") +
+scale_x_continuous(breaks=c(-1,-log2(fccutoff),0,log2(fccutoff),1), labels=c('-log2(2)', paste0('-log2(',fccutoff,')'), 0, paste0('log2(',fccutoff,')'), 'log2(2)')) + theme(axis.text.x = element_text(angle = 45, hjust = 1))} else {
+
+deg_vol <- ggplot(data = deg, aes(x=log2FC, y=minusLog10_Pvalue, col=volcano_DE)) + 
+geom_point(alpha=0.5, show.legend = F) + 
+scale_color_manual(values = c('gray','firebrick1','dodgerblue')) + 
+theme_bw() + 
+theme(axis.text=element_text(size=15), axis.title=element_text(size=20), plot.title=element_text(size=20), legend.text=element_text(size=15)) +
+ggtitle(as.character(plot_title)) + 
+xlab("log2(FC)") + ylab("-log10(Pvalue)") +
+geom_hline(aes(yintercept = min(deg$minusLog10_Pvalue[deg$FDR < fdrcutoff]), linetype=paste0("FDR ", fdrcutoff)),  color=c('forestgreen')) +
+#geom_hline(aes(yintercept = c(-log10(0.05), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.1]), min(deg$`minusLog10 pvalue`[deg$`Adjusted pvalue`<0.05])), linetype=c("p", "q", "q")), linetype='dashed', color=c('blue','red','purple')) +
+scale_linetype_manual(name = "", values = c(2), guide = guide_legend(override.aes = list(color = c('forestgreen')))) +
+#geom_text(aes(max(deg$Log2),-log10(0.05),label = 'p-value 0.05', hjust = 1, vjust=-1)) + 
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.1]),label = 'FDR 0.1', hjust = 1, vjust=-1)) +
+#geom_text(aes(max(deg$Log2),min(deg$`minusLog10 pvalue`[deg$`minusLog10 adjusted pvalue`<0.05]),label = 'FDR 0.05', hjust = 1, vjust=-1)) + 
+geom_text_repel(data = deg_show, aes(label = Gene), color='black', size = 4, box.padding = unit(0.3, "lines"), point.padding = unit(0.3, "lines"), show.legend=FALSE, max.overlaps = 100) +
+theme(legend.position = "right") +
+scale_x_continuous(breaks=c(-1,0,1), labels=c('-log2(2)',0, 'log2(2)')) + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+ggsave(paste0(dir_plots, plot_title, '.pdf'), deg_vol, width=10, height=8)
+ggsave(paste0(dir_plots, plot_title, '.png'), deg_vol, width=10, height=8, dpi=300)
+
+return(deg_vol)
+}
+
+# plotting
+fns <- list.files(path = paste0(Path_input, '/p0.1SlideModel_DE/'), pattern=".csv")
+fns_addedgenes <- c('DEG_SD_vs_Sleep_covCFC_DG_sup_plusSlide_p0.1Only','DEG_SD_vs_Sleep_covCFC_DG_inf_plusSlide_p0.1Only')
+
+data_for_volcano <- lapply(fns, function(x) {return(read.csv(paste(Path_input, 'p0.1SlideModel_DE', x, sep='/')))})
+names(data_for_volcano) <- gsub('.csv$', '', fns)
+
+for (i in names(data_for_volcano)) {
+    if (nrow(data_for_volcano[[i]] %>% filter(DE_0.1 == 'YES')) > 0 & (! i %in% fns_addedgenes)) {
+    deg_volcano(data_for_volcano[[i]], i, 0.1, 1, Path_plots)
+    }
+}
+
+deg_volcano_addedgenes(data_for_volcano[['DEG_DGinf_vs_DGsup_Sleep_covCFC_SD_plusSlide_p0.1Only']], 'DEG_DGinf_vs_DGsup_Sleep_covCFC_SD_plusSlide_p0.1Only', 0.1, 1, 'Fos;Arc' ,Path_plots)
+
+deg_volcano_addedgenes(data_for_volcano[['DEG_SD_vs_Sleep_covCFC_DG_sup_plusSlide_p0.1Only']], 'DEG_SD_vs_Sleep_covCFC_DG_sup_plusSlide_p0.1Only', 0.1, 1, 'Fos' ,Path_plots)
+
+deg_volcano_addedgenes(data_for_volcano[['DEG_SD_vs_Sleep_covCFC_DG_inf_plusSlide_p0.1Only']], 'DEG_SD_vs_Sleep_covCFC_DG_inf_plusSlide_p0.1Only', 0.1, 1, 'Fos;Arc' ,Path_plots)
+```
+
+
+```{r save_data, include = F}
+save.image(paste0(Path_outputs, "QC.RData"))
+```
